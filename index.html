@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WizardCo — Impresión 3D</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React 18 + Babel standalone (sin bundler) -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+
+  <!-- Bootstrap: expone hooks de React como globales para todos los .jsx siguientes -->
+  <script>
+    const { useState, useContext, useMemo, useCallback, useEffect, createContext, Fragment } = React;
+  </script>
+
+  <!-- Datos (JS plano, sin JSX) -->
+  <script src="js/data.js"></script>
+
+  <!-- Íconos SVG propios (reemplazan a lucide-react, cero dependencias externas) -->
+  <script type="text/babel" data-presets="react" src="js/icons.jsx"></script>
+
+  <!-- Contexts / estado global -->
+  <script type="text/babel" data-presets="react" src="js/context/AuthContext.jsx"></script>
+  <script type="text/babel" data-presets="react" src="js/context/CartContext.jsx"></script>
+
+  <!-- Componentes -->
+  <script type="text/babel" data-presets="react" src="js/components/Header.jsx"></script>
+  <script type="text/babel" data-presets="react" src="js/components/FilterSidebar.jsx"></script>
+  <script type="text/babel" data-presets="react" src="js/components/ProductCard.jsx"></script>
+  <script type="text/babel" data-presets="react" src="js/components/LoginModal.jsx"></script>
+  <script type="text/babel" data-presets="react" src="js/components/CartDrawer.jsx"></script>
+  <script type="text/babel" data-presets="react" src="js/components/CheckoutView.jsx"></script>
+
+  <!-- Páginas -->
+  <script type="text/babel" data-presets="react" src="js/pages/CatalogPage.jsx"></script>
+
+  <!-- Raíz de la aplicación (monta todo) -->
+  <script type="text/babel" data-presets="react" src="js/App.jsx"></script>
+</body>
+</html>
