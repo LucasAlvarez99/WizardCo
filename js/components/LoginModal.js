@@ -47,20 +47,22 @@ function LoginModal({
     className: "modal__brand"
   }, /*#__PURE__*/React.createElement("div", {
     className: "brand__icon"
-  }, /*#__PURE__*/React.createElement(IconLayers, {
-    size: 18
+  }, /*#__PURE__*/React.createElement(IconWizardHat, {
+    size: 20
   })), /*#__PURE__*/React.createElement("span", {
     className: "brand__name",
     style: {
       display: "block"
     }
-  }, "Voxel", /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "brand__wizard"
+  }, "Wizard"), /*#__PURE__*/React.createElement("span", {
     className: "brand__accent"
-  }, "Market"))), /*#__PURE__*/React.createElement("h2", {
+  }, "Co"))), /*#__PURE__*/React.createElement("h2", {
     className: "modal__title"
   }, mode === "login" ? "Ingresá a tu cuenta" : "Creá tu cuenta"), /*#__PURE__*/React.createElement("p", {
     className: "modal__subtitle"
-  }, mode === "login" ? "Accedé a tus compras y diseños guardados." : "Sumate a la comunidad de VoxelMarket."), /*#__PURE__*/React.createElement("form", {
+  }, mode === "login" ? "Accedé a tus compras y diseños guardados." : "Sumate a la comunidad de WizardCo."), /*#__PURE__*/React.createElement("form", {
     onSubmit: submit,
     className: "form-group"
   }, mode === "register" && /*#__PURE__*/React.createElement("input", {

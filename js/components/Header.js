@@ -34,13 +34,15 @@ function Header({
     className: "brand"
   }, /*#__PURE__*/React.createElement("div", {
     className: "brand__icon"
-  }, /*#__PURE__*/React.createElement(IconLayers, {
-    size: 20
+  }, /*#__PURE__*/React.createElement(IconWizardHat, {
+    size: 22
   })), /*#__PURE__*/React.createElement("span", {
     className: "brand__name"
-  }, "Voxel", /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "brand__wizard"
+  }, "Wizard"), /*#__PURE__*/React.createElement("span", {
     className: "brand__accent"
-  }, "Market"))), /*#__PURE__*/React.createElement("div", {
+  }, "Co"))), /*#__PURE__*/React.createElement("div", {
     className: "search-bar"
   }, /*#__PURE__*/React.createElement("div", {
     className: "search-bar__wrap"

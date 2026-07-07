@@ -1,4 +1,4 @@
-# VoxelMarket — E-commerce de impresión 3D
+# WizardCo — E-commerce de impresión 3D
 
 ## Por qué daba el error de consola
 

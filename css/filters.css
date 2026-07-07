@@ -58,7 +58,7 @@
 .filters-overlay__backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(0, 0, 0, 0.55);
   animation: fadeIn 0.3s ease-in-out;
 }
 .filters-drawer {

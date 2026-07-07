@@ -41,7 +41,7 @@ function CheckoutView({
       className: "order-success__icon"
     }, /*#__PURE__*/React.createElement(IconCheck, {
       size: 32
-    })), /*#__PURE__*/React.createElement("h2", null, "\xA1Compra confirmada!"), /*#__PURE__*/React.createElement("p", null, "Te enviamos el comprobante por email. Gracias por elegir VoxelMarket."));
+    })), /*#__PURE__*/React.createElement("h2", null, "\xA1Compra confirmada!"), /*#__PURE__*/React.createElement("p", null, "Te enviamos el comprobante por email. Gracias por elegir WizardCo."));
   }
   return /*#__PURE__*/React.createElement("div", {
     className: "checkout-page"

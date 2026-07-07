@@ -1,5 +1,5 @@
 {
-  "name": "voxelmarket",
+  "name": "wizardco",
   "version": "1.0.0",
   "private": true,
   "description": "Build script: precompila los .jsx de /src a JS plano en /js para que index.html los cargue sin Babel en el navegador.",

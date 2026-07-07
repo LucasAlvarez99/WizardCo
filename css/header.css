@@ -25,20 +25,29 @@
   user-select: none;
 }
 .brand__icon {
-  background: var(--color-accent);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  padding: 6px;
+  background: transparent;
+  color: var(--color-accent);
+  padding: 4px;
   display: flex;
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.55));
 }
 .brand__name {
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: -0.02em;
-  color: var(--color-text-primary);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  font-style: italic;
   display: none;
 }
-.brand__accent { color: var(--color-accent); }
+.brand__wizard {
+  color: #f7f5fa;
+  text-shadow:
+    -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000,
+    1px 1px #000, -1px -1px #000, 1px -1px #000, -1px 1px #000;
+}
+.brand__accent {
+  color: var(--color-accent);
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.65);
+}
 
 .search-bar {
   flex: 1;
@@ -97,7 +106,7 @@
   position: absolute;
   top: -2px;
   right: -2px;
-  background: var(--color-success);
+  background: var(--color-accent);
   color: #fff;
   font-size: 10px;
   font-weight: 700;

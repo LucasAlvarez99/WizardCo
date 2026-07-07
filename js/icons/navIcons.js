@@ -96,3 +96,11 @@ const IconLayers = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE_
 }), /*#__PURE__*/React.createElement("polyline", {
   points: "2 12 12 17 22 12"
 }));
+const IconWizardHat = p => /*#__PURE__*/React.createElement(IconBase, p, /*#__PURE__*/React.createElement("path", {
+  d: "M12 2c-1.2 2.6-2 5-2 7 0 1.1.5 1.6 1.4 1.9L4 15.5c-.7.25-.7 1.2 0 1.45L11.4 19a3 3 0 0 0 1.2 0l7.4-2.05c.7-.25.7-1.2 0-1.45l-7.4-4.6c.9-.3 1.4-.8 1.4-1.9 0-2-.8-4.4-2-7Z"
+}), /*#__PURE__*/React.createElement("ellipse", {
+  cx: "12",
+  cy: "17.2",
+  rx: "8.4",
+  ry: "1.9"
+}));
