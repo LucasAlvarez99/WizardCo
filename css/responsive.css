@@ -1,0 +1,32 @@
+/* ==========================================================================
+   Responsive — Mobile-first breakpoints
+   ========================================================================== */
+@media (min-width: 640px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 768px) {
+  .brand__name { display: block; }
+  .search-bar { display: flex; }
+  .icon-btn__label { display: block; }
+  .icon-btn--menu { display: none; }
+  .user-menu__name { display: block; }
+  .mobile-search { display: none; }
+  .mobile-search-btn { display: none; }
+  .category-nav { display: block; }
+  .category-nav__list { flex-direction: row; overflow-x: auto; }
+  .category-link { width: auto; }
+  .checkout-grid { grid-template-columns: 2fr 1fr; }
+}
+
+@media (min-width: 1024px) {
+  .product-grid { grid-template-columns: repeat(3, 1fr); }
+  .filters-panel-desktop { display: block; width: 260px; flex-shrink: 0; }
+  .filters-overlay { display: none !important; }
+  .mobile-filter-btn { display: none; }
+  .filters-toggle-desktop { display: flex; }
+}
+
+@media (min-width: 1280px) {
+  .product-grid { grid-template-columns: repeat(4, 1fr); }
+}

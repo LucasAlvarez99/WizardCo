@@ -1,0 +1,41 @@
+/* ==========================================================================
+   Modal de Login / Registro
+   ========================================================================== */
+.modal-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal-overlay__backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); animation: fadeIn 0.3s ease-in-out; }
+.modal {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 380px;
+  padding: 24px;
+  animation: scaleIn 0.3s ease-in-out;
+}
+.modal__close { position: absolute; top: 16px; right: 16px; color: var(--color-text-muted); }
+.modal__close:hover { color: var(--color-text-primary); }
+.modal__brand { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+.modal__title { font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin: 0 0 4px; }
+.modal__subtitle { font-size: 14px; color: var(--color-text-muted); margin: 0 0 20px; }
+
+.form-group { display: flex; flex-direction: column; gap: 12px; }
+.form-input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.form-input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-bg); }
+.form-error {
+  font-size: 12px;
+  color: var(--color-danger);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 4px 0 0;
+}
+.modal__switch { font-size: 12px; color: var(--color-text-muted); text-align: center; margin-top: 16px; }
+.modal__switch button { color: var(--color-accent); font-weight: 500; }
+.modal__switch button:hover { text-decoration: underline; }

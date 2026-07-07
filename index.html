@@ -4,43 +4,61 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WizardCo — Impresión 3D</title>
-  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- CSS dividido por sección: editar solo el archivo que corresponda -->
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/header.css" />
+  <link rel="stylesheet" href="css/catalog.css" />
+  <link rel="stylesheet" href="css/filters.css" />
+  <link rel="stylesheet" href="css/product-card.css" />
+  <link rel="stylesheet" href="css/buttons.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/cart.css" />
+  <link rel="stylesheet" href="css/checkout.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
 </head>
 <body>
   <div id="root"></div>
 
-  <!-- React 18 + Babel standalone (sin bundler) -->
+  <!-- React 18 (sin Babel: el JSX ya viene precompilado a JS plano en /js) -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
 
-  <!-- Bootstrap: expone hooks de React como globales para todos los .jsx siguientes -->
+  <!-- Bootstrap: expone los hooks de React como globales -->
   <script>
     const { useState, useContext, useMemo, useCallback, useEffect, createContext, Fragment } = React;
   </script>
 
-  <!-- Datos (JS plano, sin JSX) -->
-  <script src="js/data.js"></script>
+  <!-- Datos, un archivo por objeto -->
+  <script src="js/data/helpers.js"></script>
+  <script src="js/data/categories.js"></script>
+  <script src="js/data/filterOptions.js"></script>
+  <script src="js/data/products.js"></script>
+  <script src="js/data/coupons.js"></script>
 
-  <!-- Íconos SVG propios (reemplazan a lucide-react, cero dependencias externas) -->
-  <script type="text/babel" data-presets="react" src="js/icons.jsx"></script>
+  <!-- Íconos SVG propios, agrupados por uso -->
+  <script src="js/icons/IconBase.js"></script>
+  <script src="js/icons/navIcons.js"></script>
+  <script src="js/icons/actionIcons.js"></script>
+  <script src="js/icons/statusIcons.js"></script>
+  <script src="js/icons/categoryIcons.js"></script>
 
   <!-- Contexts / estado global -->
-  <script type="text/babel" data-presets="react" src="js/context/AuthContext.jsx"></script>
-  <script type="text/babel" data-presets="react" src="js/context/CartContext.jsx"></script>
+  <script src="js/context/AuthContext.js"></script>
+  <script src="js/context/CartContext.js"></script>
 
   <!-- Componentes -->
-  <script type="text/babel" data-presets="react" src="js/components/Header.jsx"></script>
-  <script type="text/babel" data-presets="react" src="js/components/FilterSidebar.jsx"></script>
-  <script type="text/babel" data-presets="react" src="js/components/ProductCard.jsx"></script>
-  <script type="text/babel" data-presets="react" src="js/components/LoginModal.jsx"></script>
-  <script type="text/babel" data-presets="react" src="js/components/CartDrawer.jsx"></script>
-  <script type="text/babel" data-presets="react" src="js/components/CheckoutView.jsx"></script>
+  <script src="js/components/Header.js"></script>
+  <script src="js/components/FilterSidebar.js"></script>
+  <script src="js/components/ProductCard.js"></script>
+  <script src="js/components/LoginModal.js"></script>
+  <script src="js/components/CartDrawer.js"></script>
+  <script src="js/components/CheckoutView.js"></script>
 
   <!-- Páginas -->
-  <script type="text/babel" data-presets="react" src="js/pages/CatalogPage.jsx"></script>
+  <script src="js/pages/CatalogPage.js"></script>
 
   <!-- Raíz de la aplicación (monta todo) -->
-  <script type="text/babel" data-presets="react" src="js/App.jsx"></script>
+  <script src="js/App.js"></script>
 </body>
 </html>
