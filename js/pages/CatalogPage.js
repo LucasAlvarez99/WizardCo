@@ -12,9 +12,12 @@ function CatalogPage({
   const {
     addToCart
   } = useCart();
+  const {
+    products
+  } = useAdminData();
   const [sortBy, setSortBy] = useState("relevance");
   const filtered = useMemo(() => {
-    let list = PRODUCTS.filter(p => {
+    let list = products.filter(p => {
       if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (filters.categories.size > 0 && !filters.categories.has(p.category)) return false;
       if (filters.materials.size > 0 && !filters.materials.has(p.material)) return false;
@@ -28,7 +31,7 @@ function CatalogPage({
     if (sortBy === "price_desc") list = [...list].sort((a, b) => priceWithDiscount(b) - priceWithDiscount(a));
     if (sortBy === "rating") list = [...list].sort((a, b) => b.rating - a.rating);
     return list;
-  }, [searchQuery, filters, sortBy]);
+  }, [products, searchQuery, filters, sortBy]);
   const activeCategoryLabel = filters.categories.size === 1 ? CATEGORIES.find(c => c.id === [...filters.categories][0])?.label : null;
   return /*#__PURE__*/React.createElement("div", {
     className: "catalog-layout"

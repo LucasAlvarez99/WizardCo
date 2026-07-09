@@ -3,7 +3,7 @@
 ============================================================================ */
 
 function AppShell() {
-  const [view, setView] = useState("catalog"); // "catalog" | "checkout"
+  const [view, setView] = useState("catalog"); // "catalog" | "checkout" | "profile" | "admin"
   const [searchQuery, setSearchQuery] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -33,16 +33,24 @@ function AppShell() {
     onOpenFilters: () => setFiltersOpen(true),
     searchQuery: searchQuery,
     setSearchQuery: setSearchQuery,
-    onSelectCategory: handleSelectCategory
-  }), view === "catalog" ? /*#__PURE__*/React.createElement(CatalogPage, {
+    onSelectCategory: handleSelectCategory,
+    onGoProfile: () => setView("profile"),
+    onGoAdmin: () => setView("admin")
+  }), view === "catalog" && /*#__PURE__*/React.createElement(CatalogPage, {
     searchQuery: searchQuery,
     filters: filters,
     setFilters: setFilters,
     filtersOpen: filtersOpen,
     setFiltersOpen: setFiltersOpen
-  }) : /*#__PURE__*/React.createElement(CheckoutView, {
+  }), view === "checkout" && /*#__PURE__*/React.createElement(CheckoutView, {
     onBack: () => setView("catalog"),
-    onFinish: () => setView("catalog")
+    onFinish: () => setView("catalog"),
+    onGoProfile: () => setView("profile"),
+    onOpenLogin: () => setLoginOpen(true)
+  }), view === "profile" && /*#__PURE__*/React.createElement(ProfilePage, {
+    onBack: () => setView("catalog")
+  }), view === "admin" && /*#__PURE__*/React.createElement(AdminPage, {
+    onBack: () => setView("catalog")
   }), cartOpen && /*#__PURE__*/React.createElement(CartDrawer, {
     onClose: () => setCartOpen(false),
     onCheckout: () => {
@@ -54,7 +62,7 @@ function AppShell() {
   }));
 }
 function App() {
-  return /*#__PURE__*/React.createElement(AuthProvider, null, /*#__PURE__*/React.createElement(CartProvider, null, /*#__PURE__*/React.createElement(AppShell, null)));
+  return /*#__PURE__*/React.createElement(AdminDataProvider, null, /*#__PURE__*/React.createElement(AuthProvider, null, /*#__PURE__*/React.createElement(CartProvider, null, /*#__PURE__*/React.createElement(AppShell, null))));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(App, null));

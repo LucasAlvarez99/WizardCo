@@ -1,13 +1,19 @@
 /* ============================================================================
-   CartContext.jsx — Carrito global + CouponManager
+   CartContext.jsx — Carrito global.
+   El CouponManager (alta, decremento y expiración) ahora vive en
+   AdminDataContext, porque los cupones se administran desde el panel de
+   administración. Este contexto solo aplica/retira el cupón en la sesión
+   de compra actual.
 ============================================================================ */
 
 const CartContext = createContext(null);
 function CartProvider({
   children
 }) {
+  const {
+    applyCoupon: applyCouponGlobal
+  } = useAdminData();
   const [items, setItems] = useState([]); // { id, name, price, qty, material, fileType }
-  const [coupons, setCoupons] = useState(INITIAL_COUPONS);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const addToCart = useCallback(product => {
     setItems(prev => {
@@ -41,59 +47,22 @@ function CartProvider({
     setItems([]);
     setAppliedCoupon(null);
   }, []);
-
-  /* ---------------- CouponManager: algoritmo de decremento y eliminación ---------------- */
   const applyCoupon = useCallback(rawCode => {
-    const code = rawCode.trim().toUpperCase();
-    if (!code) {
-      return {
-        success: false,
-        message: "Ingresá un código de cupón."
-      };
-    }
     if (appliedCoupon) {
       return {
         success: false,
         message: `Ya tenés el cupón ${appliedCoupon.code} aplicado. Quitalo para usar otro.`
       };
     }
-    const found = coupons.find(c => c.code === code);
-    if (!found) {
-      return {
-        success: false,
-        message: "El cupón no existe o ya no está disponible."
-      };
+    const result = applyCouponGlobal(rawCode);
+    if (result.success) {
+      setAppliedCoupon({
+        code: result.code,
+        discountPercentage: result.discountPercentage
+      });
     }
-    if (found.usableCount <= 0) {
-      // Salvaguarda: nunca debería ocurrir porque el cupón se elimina al llegar a 0.
-      setCoupons(prev => prev.filter(c => c.code !== code));
-      return {
-        success: false,
-        message: "Este cupón ya alcanzó su límite de usos."
-      };
-    }
-
-    // Se aplica el cupón y se descuenta 1 uso disponible.
-    const newCount = found.usableCount - 1;
-    setCoupons(prev => {
-      if (newCount <= 0) {
-        // Al llegar a 0 usos disponibles, el cupón se elimina del sistema por completo.
-        return prev.filter(c => c.code !== code);
-      }
-      return prev.map(c => c.code === code ? {
-        ...c,
-        usableCount: newCount
-      } : c);
-    });
-    setAppliedCoupon({
-      code: found.code,
-      discountPercentage: found.discountPercentage
-    });
-    return {
-      success: true,
-      message: newCount > 0 ? `Cupón ${found.code} aplicado (-${found.discountPercentage}%). Quedan ${newCount} usos.` : `Cupón ${found.code} aplicado (-${found.discountPercentage}%). Era el último uso disponible: se agotó.`
-    };
-  }, [coupons, appliedCoupon]);
+    return result;
+  }, [appliedCoupon, applyCouponGlobal]);
   const removeCoupon = useCallback(() => setAppliedCoupon(null), []);
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
@@ -117,7 +86,6 @@ function CartProvider({
       removeFromCart,
       updateQty,
       clearCart,
-      coupons,
       appliedCoupon,
       applyCoupon,
       removeCoupon,

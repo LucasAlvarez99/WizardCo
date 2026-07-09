@@ -8,7 +8,9 @@ function Header({
   onOpenFilters,
   searchQuery,
   setSearchQuery,
-  onSelectCategory
+  onSelectCategory,
+  onGoProfile,
+  onGoAdmin
 }) {
   const {
     user,
@@ -89,11 +91,27 @@ function Header({
     className: "user-menu__fullname"
   }, user.name), /*#__PURE__*/React.createElement("p", {
     className: "user-menu__email"
-  }, user.email)), /*#__PURE__*/React.createElement("div", {
-    className: "user-menu__item"
-  }, /*#__PURE__*/React.createElement(IconPackage, {
+  }, user.email), !user.verified && /*#__PURE__*/React.createElement("p", {
+    className: "user-menu__unverified"
+  }, /*#__PURE__*/React.createElement(IconAlert, {
+    size: 12
+  }), " Cuenta sin verificar")), /*#__PURE__*/React.createElement("button", {
+    className: "user-menu__item user-menu__item--btn",
+    onClick: () => {
+      onGoProfile();
+      setUserMenuOpen(false);
+    }
+  }, /*#__PURE__*/React.createElement(IconUser, {
     size: 15
-  }), /*#__PURE__*/React.createElement("span", null, user.orders, " compras realizadas")), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("span", null, "Mi perfil")), user.isAdmin && /*#__PURE__*/React.createElement("button", {
+    className: "user-menu__item user-menu__item--btn",
+    onClick: () => {
+      onGoAdmin();
+      setUserMenuOpen(false);
+    }
+  }, /*#__PURE__*/React.createElement(IconStore, {
+    size: 15
+  }), /*#__PURE__*/React.createElement("span", null, "Panel de administraci\xF3n")), /*#__PURE__*/React.createElement("button", {
     className: "user-menu__logout",
     onClick: () => {
       logout();

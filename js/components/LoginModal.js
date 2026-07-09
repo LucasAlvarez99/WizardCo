@@ -109,5 +109,7 @@ function LoginModal({
       setMode(mode === "login" ? "register" : "login");
       setError("");
     }
-  }, mode === "login" ? "Registrate" : "Ingresá"))));
+  }, mode === "login" ? "Registrate" : "Ingresá")), /*#__PURE__*/React.createElement("p", {
+    className: "modal__demo-tip"
+  }, "Tip demo: us\xE1 un email que contenga ", /*#__PURE__*/React.createElement("strong", null, "\"admin\""), " (ej. admin@wizardco.com) para entrar con acceso al panel de administraci\xF3n.")));
 }
