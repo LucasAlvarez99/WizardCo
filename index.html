@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="css/modal.css" />
   <link rel="stylesheet" href="css/cart.css" />
   <link rel="stylesheet" href="css/checkout.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/profile.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
 <body>
@@ -35,6 +37,8 @@
   <script src="js/data/filterOptions.js"></script>
   <script src="js/data/products.js"></script>
   <script src="js/data/coupons.js"></script>
+  <script src="js/data/adminContact.js"></script>
+  <script src="js/data/localStore.js"></script>
 
   <!-- Íconos SVG propios, agrupados por uso -->
   <script src="js/icons/IconBase.js"></script>
@@ -42,8 +46,10 @@
   <script src="js/icons/actionIcons.js"></script>
   <script src="js/icons/statusIcons.js"></script>
   <script src="js/icons/categoryIcons.js"></script>
+  <script src="js/icons/adminIcons.js"></script>
 
   <!-- Contexts / estado global -->
+  <script src="js/context/AdminDataContext.js"></script>
   <script src="js/context/AuthContext.js"></script>
   <script src="js/context/CartContext.js"></script>
 
@@ -55,8 +61,21 @@
   <script src="js/components/CartDrawer.js"></script>
   <script src="js/components/CheckoutView.js"></script>
 
+  <!-- Componentes del panel de administración -->
+  <script src="js/components/admin/ProductsTab.js"></script>
+  <script src="js/components/admin/CouponsTab.js"></script>
+  <script src="js/components/admin/OrdersTab.js"></script>
+  <script src="js/components/admin/SettingsTab.js"></script>
+
+  <!-- Componentes del perfil -->
+  <script src="js/components/profile/VerifyEmailCard.js"></script>
+  <script src="js/components/profile/BankAccountCard.js"></script>
+  <script src="js/components/profile/OrderHistoryCard.js"></script>
+
   <!-- Páginas -->
   <script src="js/pages/CatalogPage.js"></script>
+  <script src="js/pages/AdminPage.js"></script>
+  <script src="js/pages/ProfilePage.js"></script>
 
   <!-- Raíz de la aplicación (monta todo) -->
   <script src="js/App.js"></script>

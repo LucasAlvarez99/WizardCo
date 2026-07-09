@@ -166,6 +166,20 @@
   font-size: 14px;
   color: var(--color-text-secondary);
 }
+.user-menu__item--btn {
+  width: 100%;
+  text-align: left;
+  transition: var(--transition);
+}
+.user-menu__item--btn:hover { background: var(--color-surface-alt); color: var(--color-text-primary); }
+.user-menu__unverified {
+  font-size: 11px;
+  color: var(--color-warning);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+}
 .user-menu__logout {
   width: 100%;
   text-align: left;
