@@ -1,18 +1,52 @@
 /* ============================================================================
    CheckoutView.jsx — usa CouponManager vía useCart(), valida cuenta
-   verificada + cuenta bancaria vinculada, registra el pedido en
-   AdminDataContext y ofrece avisar la venta por WhatsApp/Email.
+   verificada, y procesa el pago real de la compra con Mercado Pago
+   Checkout Pro (redirige a la pasarela real; nunca vemos ni guardamos
+   datos de tarjeta/cuenta bancaria acá). El resultado del pago vuelve por
+   query params (ver App.jsx) y se resuelve con la prop `paymentReturn`.
 ============================================================================ */
 
-function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin }) {
+function buildBackUrls() {
+  const origin = window.location.origin + window.location.pathname;
+  return {
+    success: `${origin}?mp_status=success`,
+    failure: `${origin}?mp_status=failure`,
+    pending: `${origin}?mp_status=pending`,
+  };
+}
+
+function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentReturn, onClearPaymentReturn }) {
   const { user } = useAuth();
   const { items, totals, appliedCoupon, applyCoupon, removeCoupon, clearCart } = useCart();
   const { logOrder, contact } = useAdminData();
   const [couponInput, setCouponInput] = useState("");
   const [couponMessage, setCouponMessage] = useState(null);
-  const [placingOrder, setPlacingOrder] = useState(false);
-  const [orderDone, setOrderDone] = useState(false);
-  const [lastOrder, setLastOrder] = useState(null);
+  const [redirecting, setRedirecting] = useState(false);
+  const [payError, setPayError] = useState(null);
+  const [resolvedOrder, setResolvedOrder] = useState(null);
+
+  // Al volver desde Mercado Pago, resolvemos el resultado una sola vez.
+  useEffect(() => {
+    if (!paymentReturn) return;
+    const pendingRaw = localStorage.getItem("wizardco_pending_order");
+    const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+
+    if (paymentReturn.status === "success" && pending) {
+      const order = { ...pending, paymentStatus: "approved" };
+      logOrder(order);
+      setResolvedOrder(order);
+      clearCart();
+      localStorage.removeItem("wizardco_pending_order");
+    } else if (paymentReturn.status === "pending" && pending) {
+      const order = { ...pending, paymentStatus: "pending" };
+      logOrder(order);
+      setResolvedOrder(order);
+      clearCart();
+      localStorage.removeItem("wizardco_pending_order");
+    }
+    // en "failure" no tocamos el carrito: dejamos que la persona reintente.
+    // eslint-disable-next-line
+  }, [paymentReturn]);
 
   const handleApplyCoupon = () => {
     const result = applyCoupon(couponInput);
@@ -20,46 +54,91 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin }) {
     if (result.success) setCouponInput("");
   };
 
-  // Validaciones antes de permitir confirmar la compra.
   const blockers = [];
   if (!user) blockers.push({ text: "Tenés que iniciar sesión para comprar.", action: onOpenLogin, actionLabel: "Ingresar" });
   if (user && !user.verified) blockers.push({ text: "Tu cuenta todavía no está verificada.", action: onGoProfile, actionLabel: "Verificar cuenta" });
-  if (user && !user.bankAccount) blockers.push({ text: "Necesitás vincular una cuenta bancaria para validar la compra.", action: onGoProfile, actionLabel: "Vincular cuenta" });
 
-  const handleConfirm = () => {
+  const handlePay = async () => {
     if (blockers.length > 0 || items.length === 0) return;
-    setPlacingOrder(true);
-    setTimeout(() => {
-      const order = {
-        customerName: user.name,
-        customerEmail: user.email,
-        items: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
-        subtotal: totals.subtotal,
-        discountAmount: totals.discountAmount,
-        tax: totals.tax,
-        total: totals.total,
-        couponCode: appliedCoupon ? appliedCoupon.code : null,
-      };
-      logOrder(order);
-      setLastOrder(order);
-      setPlacingOrder(false);
-      setOrderDone(true);
-      clearCart();
-    }, 900);
+    setPayError(null);
+    setRedirecting(true);
+
+    const order = {
+      customerName: user.name,
+      customerEmail: user.email,
+      items: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
+      subtotal: totals.subtotal,
+      discountAmount: totals.discountAmount,
+      tax: totals.tax,
+      total: totals.total,
+      couponCode: appliedCoupon ? appliedCoupon.code : null,
+    };
+    const externalReference = `WZ-${Date.now()}`;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/create-preference`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((i) => ({ title: i.name, quantity: i.qty, unit_price: i.price })),
+          payer: { email: user.email, name: user.name },
+          external_reference: externalReference,
+          back_urls: buildBackUrls(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "El backend de pagos no respondió correctamente.");
+      }
+
+      const data = await response.json();
+      // Guardamos el pedido pendiente para poder registrarlo cuando la
+      // persona vuelva desde Mercado Pago (ver el useEffect de arriba).
+      localStorage.setItem("wizardco_pending_order", JSON.stringify({ ...order, externalReference }));
+      window.location.href = data.init_point || data.sandbox_init_point;
+    } catch (err) {
+      setRedirecting(false);
+      setPayError(
+        err.message +
+          " — ¿Corriste el backend en /server con un MP_ACCESS_TOKEN real? Mirá /server/README.md."
+      );
+    }
   };
 
-  if (orderDone) {
-    const message = `Nuevo pedido confirmado\nCliente: ${lastOrder.customerName} (${lastOrder.customerEmail})\n\n${lastOrder.items
+  /* ---------------- Pantallas de resultado (volviendo de Mercado Pago) ---------------- */
+  if (paymentReturn && paymentReturn.status === "failure") {
+    return (
+      <div className="order-success order-success--error">
+        <div className="order-success__icon order-success__icon--error"><IconAlert size={32} /></div>
+        <h2>El pago no se pudo completar</h2>
+        <p>Mercado Pago rechazó o canceló el pago. Tu carrito sigue intacto, podés volver a intentar.</p>
+        <button className="btn-primary" style={{ marginTop: 20, maxWidth: 240, marginLeft: "auto", marginRight: "auto" }} onClick={onClearPaymentReturn}>
+          Volver a intentar
+        </button>
+      </div>
+    );
+  }
+
+  if (paymentReturn && (paymentReturn.status === "success" || paymentReturn.status === "pending") && resolvedOrder) {
+    const isPending = resolvedOrder.paymentStatus === "pending";
+    const message = `Nuevo pedido ${isPending ? "(pago pendiente) " : ""}\nCliente: ${resolvedOrder.customerName} (${resolvedOrder.customerEmail})\n\n${resolvedOrder.items
       .map((i) => `• ${i.qty}x ${i.name}`)
-      .join("\n")}\n\nTotal: ${formatCurrency(lastOrder.total)}`;
+      .join("\n")}\n\nTotal: ${formatCurrency(resolvedOrder.total)}`;
     const waLink = `https://wa.me/${contact.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
     const mailLink = `mailto:${contact.email}?subject=${encodeURIComponent("Nuevo pedido — WizardCo")}&body=${encodeURIComponent(message)}`;
 
     return (
       <div className="order-success">
-        <div className="order-success__icon"><IconCheck size={32} /></div>
-        <h2>¡Compra confirmada!</h2>
-        <p>Gracias por elegir WizardCo, {lastOrder.customerName.split(" ")[0]}.</p>
+        <div className={`order-success__icon ${isPending ? "order-success__icon--pending" : ""}`}>
+          {isPending ? <IconLoader size={32} /> : <IconCheck size={32} />}
+        </div>
+        <h2>{isPending ? "Pago en proceso" : "¡Compra confirmada!"}</h2>
+        <p>
+          {isPending
+            ? "Mercado Pago está procesando tu pago (por ejemplo, un pago en efectivo o transferencia). Te vamos a avisar cuando se acredite."
+            : `Gracias por elegir WizardCo, ${resolvedOrder.customerName.split(" ")[0]}.`}
+        </p>
 
         <div className="order-success__notify">
           <p className="order-success__notify-label">Avisar la venta al equipo de WizardCo:</p>
@@ -164,9 +243,13 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin }) {
             </div>
           </div>
 
-          <button className="btn-primary" onClick={handleConfirm} disabled={placingOrder || items.length === 0 || blockers.length > 0}>
-            {placingOrder ? <IconLoader size={16} /> : <IconBadgeCheck size={16} />}
-            {placingOrder ? "Procesando..." : "Confirmar compra"}
+          {payError && (
+            <p className="form-error"><IconAlert size={13} /> {payError}</p>
+          )}
+
+          <button className="btn-primary" onClick={handlePay} disabled={redirecting || items.length === 0 || blockers.length > 0}>
+            {redirecting ? <IconLoader size={16} /> : <IconCard size={16} />}
+            {redirecting ? "Redirigiendo a Mercado Pago..." : "Pagar con Mercado Pago"}
           </button>
         </div>
       </div>

@@ -30,7 +30,9 @@ function OrdersTab() {
       className: "admin-order-item"
     }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
       className: "admin-order-item__id"
-    }, order.id), /*#__PURE__*/React.createElement("p", {
+    }, order.id, order.paymentStatus && /*#__PURE__*/React.createElement("span", {
+      className: `payment-status-badge payment-status-badge--${order.paymentStatus}`
+    }, order.paymentStatus === "approved" ? "Pagado" : order.paymentStatus === "pending" ? "Pendiente" : order.paymentStatus)), /*#__PURE__*/React.createElement("p", {
       className: "admin-order-item__meta"
     }, order.customerName, " \xB7 ", order.customerEmail, " \xB7 ", new Date(order.date).toLocaleString("es-AR"))), /*#__PURE__*/React.createElement("div", {
       className: "admin-order-item__total"

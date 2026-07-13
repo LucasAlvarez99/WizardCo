@@ -2,12 +2,22 @@
    App.jsx — Raíz de la aplicación
 ============================================================================ */
 
+function readPaymentReturnFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("mp_status");
+  if (!status) return null;
+  return {
+    status,
+    externalReference: params.get("external_reference") || null
+  };
+}
 function AppShell() {
   const [view, setView] = useState("catalog"); // "catalog" | "checkout" | "profile" | "admin"
   const [searchQuery, setSearchQuery] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [paymentReturn, setPaymentReturn] = useState(null);
   const [filters, setFilters] = useState({
     categories: new Set(),
     materials: new Set(),
@@ -15,6 +25,17 @@ function AppShell() {
     minPrice: "",
     maxPrice: ""
   });
+
+  // Si volvimos desde Mercado Pago (redirect de Checkout Pro), mostramos
+  // directamente la pantalla de resultado del pago y limpiamos la URL.
+  useEffect(() => {
+    const parsed = readPaymentReturnFromUrl();
+    if (parsed) {
+      setPaymentReturn(parsed);
+      setView("checkout");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
   const handleSelectCategory = categoryId => {
     setView("catalog");
     setFilters(prev => {
@@ -44,9 +65,14 @@ function AppShell() {
     setFiltersOpen: setFiltersOpen
   }), view === "checkout" && /*#__PURE__*/React.createElement(CheckoutView, {
     onBack: () => setView("catalog"),
-    onFinish: () => setView("catalog"),
+    onFinish: () => {
+      setPaymentReturn(null);
+      setView("catalog");
+    },
     onGoProfile: () => setView("profile"),
-    onOpenLogin: () => setLoginOpen(true)
+    onOpenLogin: () => setLoginOpen(true),
+    paymentReturn: paymentReturn,
+    onClearPaymentReturn: () => setPaymentReturn(null)
   }), view === "profile" && /*#__PURE__*/React.createElement(ProfilePage, {
     onBack: () => setView("catalog")
   }), view === "admin" && /*#__PURE__*/React.createElement(AdminPage, {

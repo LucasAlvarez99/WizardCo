@@ -1,14 +1,16 @@
 /* ============================================================================
    AuthContext.jsx — Autenticación simulada + verificación de cuenta +
-   cuenta bancaria (simulada) + rol de administrador.
+   rol de administrador.
 
-   Nota honesta: no hay backend real. La verificación de email "envía" un
-   código que se muestra en pantalla (no llega ningún email real), y la
-   cuenta bancaria es un mock — guarda solo un alias y los últimos 4
-   dígitos, nunca el número completo. Para producción hace falta un backend
-   + un procesador de pagos habilitado (Mercado Pago, Stripe Connect, etc.)
-   para la parte bancaria, y un servicio de email (Resend, SendGrid) para
-   los códigos de verificación reales.
+   Nota honesta: no hay backend real de emails. La verificación "envía" un
+   código que se muestra en pantalla (no llega ningún email real). Para
+   producción hace falta un backend + un servicio de email (Resend,
+   SendGrid) para los códigos de verificación reales.
+
+   El pago (antes acá como "cuenta bancaria simulada") ahora se procesa de
+   verdad en cada compra vía Mercado Pago Checkout Pro — ver
+   CheckoutView.jsx y /server. Por eso este contexto ya no guarda ningún
+   dato bancario.
 ============================================================================ */
 
 const AuthContext = createContext(null);
@@ -34,8 +36,7 @@ function AuthProvider({
       email,
       isAdmin: email.toLowerCase().includes("admin"),
       verified: false,
-      pendingCode: null,
-      bankAccount: null
+      pendingCode: null
     });
     return {
       success: true
@@ -59,8 +60,7 @@ function AuthProvider({
       email,
       isAdmin: email.toLowerCase().includes("admin"),
       verified: false,
-      pendingCode: null,
-      bankAccount: null
+      pendingCode: null
     });
     return {
       success: true
@@ -96,37 +96,6 @@ function AuthProvider({
       message: "Cuenta verificada correctamente."
     };
   }, [user]);
-
-  /* ---------------- Cuenta bancaria (simulada, solo para demo) ---------------- */
-  const linkBankAccount = useCallback((holder, bankName, accountNumber) => {
-    if (!holder || !bankName || !accountNumber) return {
-      success: false,
-      message: "Completá todos los campos."
-    };
-    const digits = accountNumber.replace(/\D/g, "");
-    if (digits.length < 8) return {
-      success: false,
-      message: "Ingresá un número de cuenta/CBU válido."
-    };
-    setUser(prev => ({
-      ...prev,
-      bankAccount: {
-        holder,
-        bankName,
-        last4: digits.slice(-4)
-      }
-    }));
-    return {
-      success: true,
-      message: "Cuenta bancaria vinculada."
-    };
-  }, []);
-  const unlinkBankAccount = useCallback(() => {
-    setUser(prev => prev ? {
-      ...prev,
-      bankAccount: null
-    } : prev);
-  }, []);
   return /*#__PURE__*/React.createElement(AuthContext.Provider, {
     value: {
       user,
@@ -134,9 +103,7 @@ function AuthProvider({
       register,
       logout,
       sendVerificationCode,
-      verifyEmail,
-      linkBankAccount,
-      unlinkBankAccount
+      verifyEmail
     }
   }, children);
 }

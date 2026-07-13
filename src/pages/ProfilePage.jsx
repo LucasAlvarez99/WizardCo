@@ -35,7 +35,7 @@ function ProfilePage({ onBack }) {
 
       <div className="profile-grid">
         <VerifyEmailCard />
-        <BankAccountCard />
+        <PaymentInfoCard />
         <OrderHistoryCard />
       </div>
     </div>

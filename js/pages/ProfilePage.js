@@ -48,5 +48,5 @@ function ProfilePage({
     size: 16
   }))), /*#__PURE__*/React.createElement("div", {
     className: "profile-grid"
-  }, /*#__PURE__*/React.createElement(VerifyEmailCard, null), /*#__PURE__*/React.createElement(BankAccountCard, null), /*#__PURE__*/React.createElement(OrderHistoryCard, null)));
+  }, /*#__PURE__*/React.createElement(VerifyEmailCard, null), /*#__PURE__*/React.createElement(PaymentInfoCard, null), /*#__PURE__*/React.createElement(OrderHistoryCard, null)));
 }

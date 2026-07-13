@@ -14,71 +14,99 @@ abriendo `index.html` con doble clic.
 
 ## Cómo abrir el proyecto
 
-Simplemente abrí `index.html` en el navegador (doble clic). No hace falta
-servidor ni build para *ver* la app: `/js` ya viene compilado.
+Para navegar el catálogo, `index.html` funciona con doble clic. Para
+**pagar de verdad** con Mercado Pago necesitás correr también el backend
+de `/server` (ver más abajo) — sin eso el botón de pago va a mostrar un
+error explicando que falta configurarlo.
 
 ## Funcionalidades
 
 ### Catálogo, carrito y checkout
-Los de siempre: buscador, filtros, carrito con cantidades, cupones con
-usos limitados, cálculo de IVA.
+Buscador, filtros, carrito con cantidades, cupones con usos limitados,
+cálculo de IVA.
+
+### Pagos reales con Mercado Pago Checkout Pro
+El botón "Pagar con Mercado Pago" del checkout **redirige a la pasarela
+real de Mercado Pago** — tarjetas, transferencia o dinero en cuenta, todo
+procesado por Mercado Pago. Ni el frontend ni WizardCo ven o guardan en
+ningún momento un número de tarjeta o de cuenta.
+
+Esto necesita un backend chico (`/server`) porque el access token de
+Mercado Pago es secreto y no puede vivir en código de frontend. Ver
+**`server/README.md`** para la guía completa paso a paso (conseguir
+credenciales de prueba, correrlo local, probar con tarjetas de prueba,
+desplegarlo). En resumen:
+
+```bash
+cd server
+cp .env.example .env      # completá MP_ACCESS_TOKEN con el tuyo
+npm install
+npm start
+```
+
+Con eso corriendo, y `index.html` abierto en el navegador, el flujo de
+compra completo funciona de punta a punta contra Mercado Pago real (modo
+prueba o producción, según qué access token uses).
 
 ### Cuentas de usuario y panel de administración
 - **Login/registro simulado.** Para probar el panel de administración,
   usá un email que **contenga la palabra "admin"** (ej: `admin@wizardco.com`).
   Cualquier otro email entra como cliente normal.
-- **Perfil de usuario** (`Mi perfil` en el menú): verificación de cuenta,
-  vinculación de cuenta bancaria y el historial de tus propias compras.
+- **Perfil de usuario** (`Mi perfil` en el menú): verificación de cuenta
+  y el historial de tus propias compras.
 - **Verificación de cuenta:** como esta demo no tiene backend de emails,
   el "código de verificación" se genera y se muestra directamente en
-  pantalla (en producción llegaría por email real). Es un gate: sin
-  cuenta verificada, no se puede confirmar una compra.
-- **Cuenta bancaria (simulada):** el formulario de "vincular cuenta"
-  guarda solo un alias y los **últimos 4 dígitos**, nunca el número
-  completo — es una simulación pensada para la demo, no un medio de pago
-  real. También es un gate obligatorio antes de poder comprar.
+  pantalla (en producción llegaría por email real — ver la sección de
+  abajo). Es un gate: sin cuenta verificada, no se puede pagar.
 - **Panel de administración** (`Panel de administración`, solo visible
   para cuentas admin): pestañas para **Productos** (alta, edición inline
   de precio/descuento, baja), **Cupones** (alta con código/porcentaje/usos,
-  baja), **Pedidos** (todas las compras confirmadas, con botón para avisar
-  por WhatsApp/Email) y **Configuración** (a qué WhatsApp/Email llegan los
-  avisos de venta).
+  baja), **Pedidos** (todas las compras confirmadas, con el estado real
+  del pago — Pagado/Pendiente — y botón para avisar por WhatsApp/Email) y
+  **Configuración** (a qué WhatsApp/Email llegan los avisos de venta).
 
-### Aviso de venta por WhatsApp / Email (esto sí es real)
-Después de confirmar una compra (o desde el panel de administración, tab
+### Aviso de venta por WhatsApp / Email
+Después de un pago confirmado (o desde el panel de administración, tab
 Pedidos), aparecen dos botones que arman un mensaje con el detalle del
-pedido y abren:
-- `https://wa.me/<numero>?text=...` → abre WhatsApp Web/App con el mensaje
-  ya redactado, listo para enviar.
-- `mailto:<email>?subject=...&body=...` → abre el cliente de correo del
-  usuario con el mensaje ya redactado.
+pedido y abren `https://wa.me/<numero>?text=...` y
+`mailto:<email>?subject=...&body=...` con el mensaje ya redactado.
 
-Ambos son estándares del navegador, **no necesitan backend ni API paga** —
-la única salvedad es que requieren un clic del usuario (ningún sitio puede
-mandar un WhatsApp o email 100% solo, por diseño de los navegadores).
+Estos dos son estándares del navegador y **no necesitan backend** — la
+salvedad es que requieren un clic de la persona (ver la sección siguiente
+sobre por qué el aviso automático 100% solo necesita más infraestructura).
 
 ### Persistencia de datos
-Productos, cupones, pedidos y la configuración de contacto se guardan en
-`localStorage`, o sea que sobreviven a un F5 **en ese mismo navegador**.
-No se sincronizan entre dispositivos ni usuarios distintos — para eso hace
-falta una base de datos real con un backend atrás.
+Productos, cupones, pedidos (los que se resuelven en el navegador) y la
+configuración de contacto se guardan en `localStorage` del navegador. Los
+pedidos que llegan por el **webhook** de Mercado Pago (la confirmación del
+lado del servidor) se guardan en `server/orders.json`. Ninguna de las dos
+cosas es una base de datos compartida entre dispositivos/usuarios — ver
+abajo.
 
-## Qué haría falta para producción (para ser honestos)
+## Qué haría falta para ir más allá de esta demo (para ser honestos)
 
-Este proyecto es 100% frontend estático, así que hay tres puntos que hoy
-están *simulados* a propósito y que en un producto real necesitan
-infraestructura del lado del servidor:
-
-1. **Verificación de cuenta real:** un backend + servicio de email
-   transaccional (Resend, SendGrid, Amazon SES) que mande el código en
-   vez de mostrarlo en pantalla.
-2. **Cuenta bancaria / cobros reales:** un backend conectado a un
-   procesador de pagos habilitado (Mercado Pago, Stripe Connect, etc.).
-   Nunca hay que manejar números de cuenta completos del lado del cliente
-   como hace este demo.
-3. **Base de datos compartida:** reemplazar `localStorage` por una API +
-   base de datos real, para que el catálogo/cupones/pedidos sean iguales
-   para todos los usuarios y no por navegador.
+1. **Notificación de venta 100% automática (sin clic):** ahora mismo el
+   aviso por WhatsApp/Email requiere que alguien haga clic en un botón,
+   porque ningún navegador puede mandar un WhatsApp o un email por su
+   cuenta sin acción de la persona (es una restricción de seguridad de
+   los navegadores, no una limitación de este código). Para que salga
+   solo, automáticamente, apenas se confirma un pago, hace falta moverlo
+   al backend: el mismo webhook de `/server/index.js` que ya recibe la
+   confirmación de Mercado Pago puede, en ese momento, llamar a una API
+   de email transaccional (Resend, SendGrid) y a la API de WhatsApp
+   Business (Meta Cloud API o Twilio) para mandar los avisos sin que
+   nadie tenga que tocar nada. Esto no lo agregamos todavía en este
+   backend porque la API de WhatsApp Business requiere una cuenta de
+   Meta Business verificada — avisame cuando la tengas y lo conectamos.
+2. **Verificación de cuenta por email real:** hoy el código se muestra en
+   pantalla. Para que llegue por email de verdad hace falta un servicio
+   de email transaccional (Resend, SendGrid, Amazon SES) llamado desde un
+   backend — el mismo `/server` es un buen lugar para agregar ese
+   endpoint el día que quieras.
+3. **Base de datos compartida:** reemplazar `localStorage` (y el
+   `orders.json` del backend) por una base de datos real (Postgres,
+   MongoDB, etc.), para que el catálogo/cupones/pedidos sean iguales para
+   todos los usuarios y no por navegador/servidor.
 
 ## Cómo modificar el código
 
@@ -108,7 +136,8 @@ src/
 │   ├── products.js        → catálogo inicial, un producto por línea
 │   ├── coupons.js         → cupones iniciales (code, %, usos)
 │   ├── adminContact.js    → a dónde llegan los avisos de venta por defecto
-│   └── localStore.js      → helpers de persistencia en localStorage
+│   ├── localStore.js      → helpers de persistencia en localStorage
+│   └── config.js          → URL del backend de pagos (API_BASE_URL)
 ├── icons/
 │   ├── IconBase.jsx        → wrapper SVG compartido
 │   ├── navIcons.jsx        → buscar, menú, cerrar, flechas, sombrero de mago
@@ -119,18 +148,18 @@ src/
 ├── context/
 │   ├── AdminDataContext.jsx → productos, cupones (CouponManager), pedidos,
 │   │                          contacto — todo persistido en localStorage
-│   ├── AuthContext.jsx      → login/registro, verificación, cuenta bancaria
+│   ├── AuthContext.jsx      → login/registro, verificación de cuenta
 │   └── CartContext.jsx      → carrito de la sesión actual
 ├── components/
 │   ├── Header.jsx, FilterSidebar.jsx, ProductCard.jsx, LoginModal.jsx,
-│   │   CartDrawer.jsx, CheckoutView.jsx
+│   │   CartDrawer.jsx, CheckoutView.jsx (acá vive el flujo de pago real)
 │   ├── admin/
 │   │   ├── ProductsTab.jsx, CouponsTab.jsx, OrdersTab.jsx, SettingsTab.jsx
 │   └── profile/
-│       ├── VerifyEmailCard.jsx, BankAccountCard.jsx, OrderHistoryCard.jsx
+│       ├── VerifyEmailCard.jsx, PaymentInfoCard.jsx, OrderHistoryCard.jsx
 ├── pages/
 │   ├── CatalogPage.jsx, AdminPage.jsx, ProfilePage.jsx
-└── App.jsx                  → raíz, monta todo con ReactDOM
+└── App.jsx                  → raíz, monta todo + detecta el regreso de Mercado Pago
 
 css/
 ├── base.css          → variables de color, reset, animaciones
@@ -141,10 +170,15 @@ css/
 ├── buttons.css       → botón primario genérico
 ├── modal.css         → modal de login/registro
 ├── cart.css          → carrito lateral
-├── checkout.css      → checkout, cupones, totales, bloqueos, aviso de venta
+├── checkout.css      → checkout, cupones, totales, bloqueos, resultado del pago
 ├── admin.css         → panel de administración (tabs, tablas, formularios)
-├── profile.css        → tarjetas del perfil de usuario
-└── responsive.css     → breakpoints mobile-first
+├── profile.css       → tarjetas del perfil de usuario
+└── responsive.css    → breakpoints mobile-first
+
+server/                → backend de pagos (Node + Express + Mercado Pago SDK)
+├── index.js            → crea preferencias de pago + recibe el webhook
+├── .env.example        → variables de entorno (copiar a .env con tus datos)
+└── README.md           → guía paso a paso para configurarlo y desplegarlo
 ```
 
 ### Ejemplos rápidos de edición
@@ -157,6 +191,8 @@ css/
   defecto. La lógica de decremento/expiración vive en `AdminDataContext.jsx`.
 - **Cambiar a dónde llegan los avisos de venta:** panel de administración
   → Configuración, o editando `src/data/adminContact.js` (valor por defecto).
+- **Cambiar la URL del backend de pagos:** `src/data/config.js`
+  (`API_BASE_URL`), y después `npm run build`.
 - **Agregar una categoría:** un objeto en `src/data/categories.js` + un
   ícono en `src/icons/categoryIcons.jsx`.
 - **Cambiar colores:** todo vive en las variables `:root` de `css/base.css`.

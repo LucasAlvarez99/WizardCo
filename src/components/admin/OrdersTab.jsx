@@ -24,7 +24,14 @@ function OrdersTab() {
               return (
                 <li key={order.id} className="admin-order-item">
                   <div>
-                    <p className="admin-order-item__id">{order.id}</p>
+                    <p className="admin-order-item__id">
+                      {order.id}
+                      {order.paymentStatus && (
+                        <span className={`payment-status-badge payment-status-badge--${order.paymentStatus}`}>
+                          {order.paymentStatus === "approved" ? "Pagado" : order.paymentStatus === "pending" ? "Pendiente" : order.paymentStatus}
+                        </span>
+                      )}
+                    </p>
                     <p className="admin-order-item__meta">
                       {order.customerName} · {order.customerEmail} · {new Date(order.date).toLocaleString("es-AR")}
                     </p>
