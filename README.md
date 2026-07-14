@@ -35,7 +35,7 @@ Esto necesita un backend chico (`/server`) porque el access token de
 Mercado Pago es secreto y no puede vivir en código de frontend. Ver
 **`server/README.md`** para la guía completa paso a paso (conseguir
 credenciales de prueba, correrlo local, probar con tarjetas de prueba,
-desplegarlo). En resumen:
+desplegarlo). En resumen, para desarrollo local:
 
 ```bash
 cd server
@@ -43,6 +43,12 @@ cp .env.example .env      # completá MP_ACCESS_TOKEN con el tuyo
 npm install
 npm start
 ```
+
+**Para que el pago funcione en el sitio publicado** (no solo en tu
+máquina) hay que desplegar `/server` en un hosting real — dejamos listo
+`render.yaml` en la raíz para desplegarlo en [Render](https://render.com)
+con un par de clics. Guía completa paso a paso en
+`server/README.md`, sección 6.
 
 Con eso corriendo, y `index.html` abierto en el navegador, el flujo de
 compra completo funciona de punta a punta contra Mercado Pago real (modo
@@ -179,6 +185,8 @@ server/                → backend de pagos (Node + Express + Mercado Pago SDK)
 ├── index.js            → crea preferencias de pago + recibe el webhook
 ├── .env.example        → variables de entorno (copiar a .env con tus datos)
 └── README.md           → guía paso a paso para configurarlo y desplegarlo
+
+render.yaml             → blueprint para desplegar /server en Render con un clic
 ```
 
 ### Ejemplos rápidos de edición

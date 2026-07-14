@@ -31,14 +31,28 @@ const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 
 const ORDERS_FILE = path.join(__dirname, "orders.json");
 const PORT = process.env.PORT || 4000;
+const TOKEN = process.env.MP_ACCESS_TOKEN || "";
 
-if (!process.env.MP_ACCESS_TOKEN) {
+// Tanto la Public Key como el Access Token empiezan con "TEST-" o "APP_USR-",
+// así que el prefijo NO alcanza para distinguirlos — es el error más común al
+// configurar esto. La Public Key tiene forma de UUID corto
+// (APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx); el Access Token es más
+// largo, con grupos numéricos (APP_USR-NNNNNNNN...-NNNNNN-hash-NNNNNNNNN).
+const LOOKS_LIKE_PUBLIC_KEY = /^(TEST-|APP_USR-)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+if (!TOKEN) {
   console.warn(
     "\n[WizardCo] ⚠ Falta MP_ACCESS_TOKEN en server/.env — copiá server/.env.example a server/.env y completá tu access token real (podés arrancar con uno de PRUEBA).\n"
   );
+} else if (LOOKS_LIKE_PUBLIC_KEY.test(TOKEN)) {
+  console.warn(
+    "\n[WizardCo] ⚠ El MP_ACCESS_TOKEN configurado tiene forma de PUBLIC KEY (formato UUID corto), no de Access Token.\n" +
+      "           En el panel de Mercado Pago son dos campos separados: 'Public Key' y 'Access Token'.\n" +
+      "           Necesitás el segundo (es más largo, con números). Fijate en Credenciales de producción/prueba.\n"
+  );
 }
 
-const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN || "" });
+const mpClient = new MercadoPagoConfig({ accessToken: TOKEN });
 
 const app = express();
 app.use(cors());
@@ -95,8 +109,23 @@ app.post("/api/create-preference", async (req, res) => {
       sandbox_init_point: result.sandbox_init_point,
     });
   } catch (err) {
-    console.error("[WizardCo] Error creando preferencia:", err.message);
-    res.status(500).json({ error: "No se pudo crear la preferencia de pago. Revisá el MP_ACCESS_TOKEN en server/.env." });
+    // Mercado Pago devuelve el motivo real en err.cause (array de
+    // {code, description}) — lo mostramos en la consola del servidor
+    // (nunca contiene datos secretos, son errores de validación) para
+    // poder diagnosticar rápido qué está fallando.
+    const causeDetail = Array.isArray(err.cause) ? err.cause.map((c) => c.description || c.code).join(" | ") : null;
+    console.error("[WizardCo] Error creando preferencia:", err.message, causeDetail || "");
+
+    if (LOOKS_LIKE_PUBLIC_KEY.test(TOKEN)) {
+      return res.status(500).json({
+        error: "El MP_ACCESS_TOKEN configurado parece ser tu Public Key, no tu Access Token. Son dos campos distintos en el panel de Mercado Pago — revisá server/.env.",
+      });
+    }
+
+    res.status(500).json({
+      error: "No se pudo crear la preferencia de pago. Revisá el MP_ACCESS_TOKEN en server/.env.",
+      details: causeDetail || err.message || undefined,
+    });
   }
 });
 

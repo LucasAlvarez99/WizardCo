@@ -89,7 +89,8 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentRetur
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || "El backend de pagos no respondió correctamente.");
+        const base = errData.error || "El backend de pagos no respondió correctamente.";
+        throw new Error(errData.details ? `${base} (detalle: ${errData.details})` : base);
       }
 
       const data = await response.json();
@@ -99,9 +100,11 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentRetur
       window.location.href = data.init_point || data.sandbox_init_point;
     } catch (err) {
       setRedirecting(false);
+      const looksLikeNetworkError = err instanceof TypeError; // "Failed to fetch": el backend no está corriendo o no es alcanzable desde acá
       setPayError(
-        err.message +
-          " — ¿Corriste el backend en /server con un MP_ACCESS_TOKEN real? Mirá /server/README.md."
+        looksLikeNetworkError
+          ? `No se pudo contactar al backend de pagos en ${API_BASE_URL}. Si este sitio está desplegado (ej. GitHub Pages), acordate de que necesitás correr /server en un hosting real (Render, Railway, etc.) y apuntar API_BASE_URL en src/data/config.js a esa URL — GitHub Pages no puede ejecutar ese backend. Si estás en local, revisá que corriste "npm start" dentro de /server.`
+          : `${err.message} — Mirá /server/README.md.`
       );
     }
   };
