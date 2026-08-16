@@ -55,7 +55,11 @@ if (!TOKEN) {
 const mpClient = new MercadoPagoConfig({ accessToken: TOKEN });
 
 const app = express();
-app.use(cors());
+// Por defecto acepta pedidos de cualquier origen (simple para empezar). Si
+// definís FRONTEND_URL en las variables de entorno, solo va a aceptar
+// pedidos desde esa URL — recomendado una vez que ya tengas el sitio
+// publicado, para que nadie más use tu backend de pagos.
+app.use(cors(process.env.FRONTEND_URL ? { origin: process.env.FRONTEND_URL } : {}));
 app.use(express.json());
 
 function readOrders() {

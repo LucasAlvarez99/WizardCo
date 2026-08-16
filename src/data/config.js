@@ -17,4 +17,3 @@ const PRODUCTION_API_URL = "https://wizardco-backend.onrender.com";
 const IS_LOCAL = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
 const API_BASE_URL = IS_LOCAL ? "http://localhost:4000" : PRODUCTION_API_URL;
-
