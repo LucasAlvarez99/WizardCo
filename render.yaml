@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: wizardco-backend
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MP_ACCESS_TOKEN
+        sync: false # lo cargás vos a mano en el dashboard de Render (es secreto)
+      - key: PUBLIC_URL
+        sync: false # la URL pública que Render te asigna a este mismo servicio
+      - key: FRONTEND_URL
+        sync: false # opcional: la URL de tu sitio publicado, para restringir CORS
