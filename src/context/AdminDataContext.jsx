@@ -1,7 +1,8 @@
 /* ============================================================================
    AdminDataContext.jsx — productos (API real contra MongoDB Atlas vía
-   /server), cupones, pedidos y contacto del admin (estos tres últimos
-   siguen en localStorage por ahora — se migran en una fase aparte).
+   /server, protegido con el token de admin de AuthContext). Cupones,
+   pedidos y contacto siguen en localStorage por ahora — se migran en una
+   fase aparte.
 ============================================================================ */
 
 const AdminDataContext = createContext(null);
@@ -13,6 +14,8 @@ const LS_KEYS = {
 };
 
 function AdminDataProvider({ children }) {
+  const { token } = useAuth();
+
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState("");
@@ -26,28 +29,18 @@ function AdminDataProvider({ children }) {
   useEffect(() => saveJSON(LS_KEYS.contact, contact), [contact]);
 
   /* ---------------- Productos (API real) ---------------- */
-
-  // Mensaje consistente con el que ya usa CheckoutView.jsx para el mismo tipo de error.
-  function networkErrorMessage(err) {
-    if (err instanceof TypeError) {
-      return `No se pudo contactar al backend en ${API_BASE_URL}. Si estás en local, revisá que corriste "npm start" dentro de /server. Si este sitio está desplegado, revisá API_BASE_URL en src/data/config.js.`;
-    }
-    return err.message || "Ocurrió un error inesperado.";
-  }
+  // Lectura es pública (no necesita token); crear/editar/borrar requiere
+  // sesión de administrador — el backend lo exige igual aunque alguien
+  // intente saltarse la UI, esto es solo para dar buen feedback acá.
 
   const fetchProducts = useCallback(async () => {
     setProductsLoading(true);
     setProductsError("");
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products`);
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || `Error ${response.status} al cargar productos.`);
-      }
-      const data = await response.json();
+      const data = await apiRequest("/api/products");
       setProducts(data);
     } catch (err) {
-      setProductsError(networkErrorMessage(err));
+      setProductsError(err.message);
     } finally {
       setProductsLoading(false);
     }
@@ -60,60 +53,41 @@ function AdminDataProvider({ children }) {
   const addProduct = useCallback(async (product) => {
     setProductsError("");
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(product),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || "No se pudo crear el producto.");
-      setProducts((prev) => [body, ...prev]);
+      const created = await apiRequest("/api/products", { method: "POST", token, body: product });
+      setProducts((prev) => [created, ...prev]);
       return { success: true };
     } catch (err) {
-      const message = networkErrorMessage(err);
-      setProductsError(message);
-      return { success: false, message };
+      setProductsError(err.message);
+      return { success: false, message: err.message };
     }
-  }, []);
+  }, [token]);
 
   const updateProduct = useCallback(async (id, patch) => {
     // Actualización optimista: se ve al toque en la tabla, y se revierte si falla.
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || "No se pudo actualizar el producto.");
-      setProducts((prev) => prev.map((p) => (p.id === id ? body : p)));
+      const updated = await apiRequest(`/api/products/${id}`, { method: "PUT", token, body: patch });
+      setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
       return { success: true };
     } catch (err) {
-      const message = networkErrorMessage(err);
-      setProductsError(message);
+      setProductsError(err.message);
       fetchProducts(); // revertir al estado real del server
-      return { success: false, message };
+      return { success: false, message: err.message };
     }
-  }, [fetchProducts]);
+  }, [token, fetchProducts]);
 
   const deleteProduct = useCallback(async (id) => {
     const previous = products;
     setProducts((prev) => prev.filter((p) => p.id !== id));
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products/${id}`, { method: "DELETE" });
-      if (!response.ok && response.status !== 204) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || "No se pudo eliminar el producto.");
-      }
+      await apiRequest(`/api/products/${id}`, { method: "DELETE", token });
       return { success: true };
     } catch (err) {
-      const message = networkErrorMessage(err);
-      setProductsError(message);
+      setProductsError(err.message);
       setProducts(previous); // revertir
-      return { success: false, message };
+      return { success: false, message: err.message };
     }
-  }, [products]);
+  }, [token, products]);
 
   /* ---------------- Cupones (CouponManager) ---------------- */
   const addCoupon = useCallback((coupon) => {

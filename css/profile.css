@@ -47,3 +47,17 @@
   margin: 0;
 }
 .profile-demo-code strong { color: var(--color-accent-hover); letter-spacing: 0.1em; }
+
+.profile-resend-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.profile-resend-link:hover { color: var(--color-text-secondary); }
+.profile-resend-link:disabled { cursor: default; opacity: 0.6; }

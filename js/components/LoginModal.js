@@ -17,19 +17,17 @@ function LoginModal({
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const submit = e => {
+  const submit = async e => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      const result = mode === "login" ? login(form.email, form.password) : register(form.name, form.email, form.password);
-      setLoading(false);
-      if (!result.success) {
-        setError(result.message);
-      } else {
-        onClose();
-      }
-    }, 500);
+    const result = mode === "login" ? await login(form.email, form.password) : await register(form.name, form.email, form.password);
+    setLoading(false);
+    if (!result.success) {
+      setError(result.message);
+    } else {
+      onClose();
+    }
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "modal-overlay"
@@ -109,7 +107,5 @@ function LoginModal({
       setMode(mode === "login" ? "register" : "login");
       setError("");
     }
-  }, mode === "login" ? "Registrate" : "Ingresá")), /*#__PURE__*/React.createElement("p", {
-    className: "modal__demo-tip"
-  }, "Tip demo: us\xE1 un email que contenga ", /*#__PURE__*/React.createElement("strong", null, "\"admin\""), " (ej. admin@wizardco.com) para entrar con acceso al panel de administraci\xF3n.")));
+  }, mode === "login" ? "Registrate" : "Ingresá"))));
 }

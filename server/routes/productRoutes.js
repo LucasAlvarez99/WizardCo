@@ -10,6 +10,7 @@
 
 const express = require("express");
 const controller = require("../controllers/productController");
+const { requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -17,8 +18,8 @@ router.use(controller.requireDb);
 
 router.get("/", controller.getAll);
 router.get("/:id", controller.getOne);
-router.post("/", controller.create);
-router.put("/:id", controller.update);
-router.delete("/:id", controller.remove);
+router.post("/", requireAdmin, controller.create);
+router.put("/:id", requireAdmin, controller.update);
+router.delete("/:id", requireAdmin, controller.remove);
 
 module.exports = router;

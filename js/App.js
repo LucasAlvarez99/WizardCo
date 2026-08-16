@@ -88,7 +88,7 @@ function AppShell() {
   }));
 }
 function App() {
-  return /*#__PURE__*/React.createElement(AdminDataProvider, null, /*#__PURE__*/React.createElement(AuthProvider, null, /*#__PURE__*/React.createElement(CartProvider, null, /*#__PURE__*/React.createElement(AppShell, null))));
+  return /*#__PURE__*/React.createElement(AuthProvider, null, /*#__PURE__*/React.createElement(AdminDataProvider, null, /*#__PURE__*/React.createElement(CartProvider, null, /*#__PURE__*/React.createElement(AppShell, null))));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(App, null));

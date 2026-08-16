@@ -1,104 +1,149 @@
 /* ============================================================================
-   AuthContext.jsx — Autenticación simulada + verificación de cuenta +
-   rol de administrador.
+   AuthContext.jsx — Autenticación real contra /server (JWT + bcrypt) y
+   verificación de cuenta por email real (Resend).
 
-   Nota honesta: no hay backend real de emails. La verificación "envía" un
-   código que se muestra en pantalla (no llega ningún email real). Para
-   producción hace falta un backend + un servicio de email (Resend,
-   SendGrid) para los códigos de verificación reales.
-
-   El pago (antes acá como "cuenta bancaria simulada") ahora se procesa de
-   verdad en cada compra vía Mercado Pago Checkout Pro — ver
-   CheckoutView.jsx y /server. Por eso este contexto ya no guarda ningún
-   dato bancario.
+   La sesión se guarda en localStorage como un JWT (wizardco_token). Al
+   cargar la app, si hay un token guardado, se valida contra el backend
+   (GET /api/auth/me) para hidratar el usuario — así una sesión vieja o
+   vencida no deja a la persona "logueada" con datos desactualizados.
 ============================================================================ */
 
 const AuthContext = createContext(null);
-function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
+const TOKEN_KEY = "wizardco_token";
 function AuthProvider({
   children
 }) {
   const [user, setUser] = useState(null);
-  const login = useCallback((email, password) => {
-    if (!email || !password) return {
-      success: false,
-      message: "Completá todos los campos."
-    };
-    if (password.length < 6) return {
-      success: false,
-      message: "La contraseña debe tener al menos 6 caracteres."
-    };
-    const name = email.split("@")[0].replace(/[._]/g, " ");
-    setUser({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      email,
-      isAdmin: email.toLowerCase().includes("admin"),
-      verified: false,
-      pendingCode: null
-    });
-    return {
-      success: true
-    };
-  }, []);
-  const register = useCallback((name, email, password) => {
-    if (!name || !email || !password) return {
-      success: false,
-      message: "Completá todos los campos."
-    };
-    if (!/^\S+@\S+\.\S+$/.test(email)) return {
-      success: false,
-      message: "Ingresá un email válido."
-    };
-    if (password.length < 6) return {
-      success: false,
-      message: "La contraseña debe tener al menos 6 caracteres."
-    };
-    setUser({
-      name,
-      email,
-      isAdmin: email.toLowerCase().includes("admin"),
-      verified: false,
-      pendingCode: null
-    });
-    return {
-      success: true
-    };
-  }, []);
-  const logout = useCallback(() => setUser(null), []);
+  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
+  const [authLoading, setAuthLoading] = useState(true);
 
-  /* ---------------- Verificación de cuenta (simulada) ---------------- */
-  const sendVerificationCode = useCallback(() => {
-    const code = generateCode();
-    setUser(prev => prev ? {
-      ...prev,
-      pendingCode: code
-    } : prev);
-    return code;
+  // Al montar (o si cambia el token), valida la sesión contra el backend.
+  useEffect(() => {
+    let cancelled = false;
+    async function hydrate() {
+      if (!token) {
+        setUser(null);
+        setAuthLoading(false);
+        return;
+      }
+      setAuthLoading(true);
+      try {
+        const data = await apiRequest("/api/auth/me", {
+          token
+        });
+        if (!cancelled) setUser(data.user);
+      } catch (err) {
+        // Token vencido/inválido, o el backend no está disponible: se
+        // limpia la sesión local para no mostrar un estado inconsistente.
+        if (!cancelled) {
+          localStorage.removeItem(TOKEN_KEY);
+          setToken(null);
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) setAuthLoading(false);
+      }
+    }
+    hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+  const login = useCallback(async (email, password) => {
+    try {
+      const data = await apiRequest("/api/auth/login", {
+        method: "POST",
+        body: {
+          email,
+          password
+        }
+      });
+      localStorage.setItem(TOKEN_KEY, data.token);
+      setToken(data.token);
+      setUser(data.user);
+      return {
+        success: true
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message
+      };
+    }
   }, []);
-  const verifyEmail = useCallback(inputCode => {
-    if (!user || !user.pendingCode) return {
-      success: false,
-      message: "Primero pedí un código de verificación."
-    };
-    if (inputCode.trim() !== user.pendingCode) return {
-      success: false,
-      message: "El código no coincide."
-    };
-    setUser(prev => ({
-      ...prev,
-      verified: true,
-      pendingCode: null
-    }));
-    return {
-      success: true,
-      message: "Cuenta verificada correctamente."
-    };
-  }, [user]);
+  const register = useCallback(async (name, email, password) => {
+    try {
+      const data = await apiRequest("/api/auth/register", {
+        method: "POST",
+        body: {
+          name,
+          email,
+          password
+        }
+      });
+      localStorage.setItem(TOKEN_KEY, data.token);
+      setToken(data.token);
+      setUser(data.user);
+      return {
+        success: true
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message
+      };
+    }
+  }, []);
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+    setUser(null);
+  }, []);
+
+  /* ---------------- Verificación de cuenta (email real vía Resend) ---------------- */
+  const sendVerificationCode = useCallback(async () => {
+    try {
+      const data = await apiRequest("/api/auth/send-verification", {
+        method: "POST",
+        token
+      });
+      return {
+        success: true,
+        message: data.message
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message
+      };
+    }
+  }, [token]);
+  const verifyEmail = useCallback(async inputCode => {
+    try {
+      const data = await apiRequest("/api/auth/verify-email", {
+        method: "POST",
+        token,
+        body: {
+          code: inputCode
+        }
+      });
+      setUser(data.user);
+      return {
+        success: true,
+        message: data.message
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message
+      };
+    }
+  }, [token]);
   return /*#__PURE__*/React.createElement(AuthContext.Provider, {
     value: {
       user,
+      token,
+      authLoading,
       login,
       register,
       logout,

@@ -7,18 +7,28 @@ function VerifyEmailCard() {
     verifyEmail
   } = useAuth();
   const [codeInput, setCodeInput] = useState("");
-  const [sentCode, setSentCode] = useState(null);
+  const [codeSent, setCodeSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [message, setMessage] = useState(null);
-  const handleSend = () => {
-    const code = sendVerificationCode();
-    setSentCode(code);
+  const handleSend = async () => {
+    setSending(true);
     setMessage(null);
+    const result = await sendVerificationCode();
+    setSending(false);
+    if (result.success) {
+      setCodeSent(true);
+    } else {
+      setMessage(result);
+    }
   };
-  const handleVerify = e => {
+  const handleVerify = async e => {
     e.preventDefault();
-    const result = verifyEmail(codeInput);
+    setVerifying(true);
+    const result = await verifyEmail(codeInput);
+    setVerifying(false);
     setMessage(result);
-    if (result.success) setSentCode(null);
+    if (result.success) setCodeSent(false);
   };
   if (user.verified) {
     return /*#__PURE__*/React.createElement("div", {
@@ -41,17 +51,18 @@ function VerifyEmailCard() {
     className: "profile-card__title"
   }, "Verific\xE1 tu cuenta"), /*#__PURE__*/React.createElement("p", {
     className: "profile-card__hint"
-  }, "Necesario para poder comprar. Como esta demo no tiene backend de email, el c\xF3digo se muestra directamente ac\xE1 (en un caso real llegar\xEDa por email)."))), !sentCode ? /*#__PURE__*/React.createElement("button", {
+  }, "Necesario para poder comprar. Te mandamos un c\xF3digo de 6 d\xEDgitos a ", user.email, "."))), !codeSent ? /*#__PURE__*/React.createElement("button", {
     className: "btn-primary",
-    onClick: handleSend
+    onClick: handleSend,
+    disabled: sending
   }, /*#__PURE__*/React.createElement(IconMail, {
     size: 16
-  }), " Enviar c\xF3digo de verificaci\xF3n") : /*#__PURE__*/React.createElement("form", {
+  }), " ", sending ? "Enviando..." : "Enviar código de verificación") : /*#__PURE__*/React.createElement("form", {
     onSubmit: handleVerify,
     className: "admin-form"
   }, /*#__PURE__*/React.createElement("p", {
     className: "profile-demo-code"
-  }, "Tu c\xF3digo (demo): ", /*#__PURE__*/React.createElement("strong", null, sentCode)), /*#__PURE__*/React.createElement("div", {
+  }, "Revis\xE1 tu email \u2014 te mandamos un c\xF3digo a ", /*#__PURE__*/React.createElement("strong", null, user.email), "."), /*#__PURE__*/React.createElement("div", {
     className: "admin-form__row"
   }, /*#__PURE__*/React.createElement("input", {
     className: "form-input",
@@ -60,8 +71,14 @@ function VerifyEmailCard() {
     onChange: e => setCodeInput(e.target.value)
   }), /*#__PURE__*/React.createElement("button", {
     type: "submit",
-    className: "btn-primary"
-  }, "Verificar"))), message && /*#__PURE__*/React.createElement("p", {
+    className: "btn-primary",
+    disabled: verifying
+  }, verifying ? "Verificando..." : "Verificar")), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "profile-resend-link",
+    onClick: handleSend,
+    disabled: sending
+  }, sending ? "Reenviando..." : "Reenviar código")), message && /*#__PURE__*/React.createElement("p", {
     className: `form-error ${message.success ? "form-error--ok" : ""}`
   }, message.success ? /*#__PURE__*/React.createElement(IconCheck, {
     size: 13

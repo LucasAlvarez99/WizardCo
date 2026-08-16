@@ -30,6 +30,7 @@ const cors = require("cors");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 const { connectDB } = require("./config/db");
 const productRoutes = require("./routes/productRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const ORDERS_FILE = path.join(__dirname, "orders.json");
 const PORT = process.env.PORT || 4000;
@@ -65,6 +66,7 @@ app.use(cors(process.env.FRONTEND_URL ? { origin: process.env.FRONTEND_URL } : {
 app.use(express.json());
 
 app.use("/api/products", productRoutes);
+app.use("/api/auth", authRoutes);
 
 function readOrders() {
   try {

@@ -9,20 +9,18 @@ function LoginModal({ onClose }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      const result =
-        mode === "login" ? login(form.email, form.password) : register(form.name, form.email, form.password);
-      setLoading(false);
-      if (!result.success) {
-        setError(result.message);
-      } else {
-        onClose();
-      }
-    }, 500);
+    const result =
+      mode === "login" ? await login(form.email, form.password) : await register(form.name, form.email, form.password);
+    setLoading(false);
+    if (!result.success) {
+      setError(result.message);
+    } else {
+      onClose();
+    }
   };
 
   return (
@@ -88,11 +86,6 @@ function LoginModal({ onClose }) {
           >
             {mode === "login" ? "Registrate" : "Ingresá"}
           </button>
-        </p>
-
-        <p className="modal__demo-tip">
-          Tip demo: usá un email que contenga <strong>"admin"</strong> (ej. admin@wizardco.com) para
-          entrar con acceso al panel de administración.
         </p>
       </div>
     </div>

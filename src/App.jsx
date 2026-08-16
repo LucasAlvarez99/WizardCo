@@ -101,13 +101,13 @@ function AppShell() {
 
 function App() {
   return (
-    <AdminDataProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <AdminDataProvider>
         <CartProvider>
           <AppShell />
         </CartProvider>
-      </AuthProvider>
-    </AdminDataProvider>
+      </AdminDataProvider>
+    </AuthProvider>
   );
 }
 

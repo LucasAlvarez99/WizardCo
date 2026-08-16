@@ -3,20 +3,30 @@
 function VerifyEmailCard() {
   const { user, sendVerificationCode, verifyEmail } = useAuth();
   const [codeInput, setCodeInput] = useState("");
-  const [sentCode, setSentCode] = useState(null);
+  const [codeSent, setCodeSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [message, setMessage] = useState(null);
 
-  const handleSend = () => {
-    const code = sendVerificationCode();
-    setSentCode(code);
+  const handleSend = async () => {
+    setSending(true);
     setMessage(null);
+    const result = await sendVerificationCode();
+    setSending(false);
+    if (result.success) {
+      setCodeSent(true);
+    } else {
+      setMessage(result);
+    }
   };
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
-    const result = verifyEmail(codeInput);
+    setVerifying(true);
+    const result = await verifyEmail(codeInput);
+    setVerifying(false);
     setMessage(result);
-    if (result.success) setSentCode(null);
+    if (result.success) setCodeSent(false);
   };
 
   if (user.verified) {
@@ -38,19 +48,18 @@ function VerifyEmailCard() {
         <div>
           <p className="profile-card__title">Verificá tu cuenta</p>
           <p className="profile-card__hint">
-            Necesario para poder comprar. Como esta demo no tiene backend de email, el código se
-            muestra directamente acá (en un caso real llegaría por email).
+            Necesario para poder comprar. Te mandamos un código de 6 dígitos a {user.email}.
           </p>
         </div>
       </div>
 
-      {!sentCode ? (
-        <button className="btn-primary" onClick={handleSend}>
-          <IconMail size={16} /> Enviar código de verificación
+      {!codeSent ? (
+        <button className="btn-primary" onClick={handleSend} disabled={sending}>
+          <IconMail size={16} /> {sending ? "Enviando..." : "Enviar código de verificación"}
         </button>
       ) : (
         <form onSubmit={handleVerify} className="admin-form">
-          <p className="profile-demo-code">Tu código (demo): <strong>{sentCode}</strong></p>
+          <p className="profile-demo-code">Revisá tu email — te mandamos un código a <strong>{user.email}</strong>.</p>
           <div className="admin-form__row">
             <input
               className="form-input"
@@ -58,8 +67,13 @@ function VerifyEmailCard() {
               value={codeInput}
               onChange={(e) => setCodeInput(e.target.value)}
             />
-            <button type="submit" className="btn-primary">Verificar</button>
+            <button type="submit" className="btn-primary" disabled={verifying}>
+              {verifying ? "Verificando..." : "Verificar"}
+            </button>
           </div>
+          <button type="button" className="profile-resend-link" onClick={handleSend} disabled={sending}>
+            {sending ? "Reenviando..." : "Reenviar código"}
+          </button>
         </form>
       )}
 
