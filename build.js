@@ -8,6 +8,7 @@
  *   npm install
  *   npm run build
  */
+
 const fs = require("fs");
 const path = require("path");
 const babel = require("@babel/core");
