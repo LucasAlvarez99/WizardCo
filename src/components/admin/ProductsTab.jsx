@@ -15,25 +15,32 @@ const EMPTY_PRODUCT = {
 };
 
 function ProductsTab() {
-  const { products, addProduct, updateProduct, deleteProduct } = useAdminData();
+  const { products, productsLoading, productsError, addProduct, updateProduct, deleteProduct } = useAdminData();
   const [form, setForm] = useState(EMPTY_PRODUCT);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.price) {
       setError("Completá al menos el nombre y el precio.");
       return;
     }
-    addProduct({
+    setSubmitting(true);
+    const result = await addProduct({
       ...form,
       price: Number(form.price),
       discount: Number(form.discount) || 0,
       rating: Number(form.rating) || 5,
       sales: Number(form.sales) || 0,
     });
+    setSubmitting(false);
+    if (!result.success) {
+      setError(result.message);
+      return;
+    }
     setForm(EMPTY_PRODUCT);
     setError("");
   };
@@ -77,14 +84,24 @@ function ProductsTab() {
 
           {error && <p className="form-error"><IconAlert size={13} /> {error}</p>}
 
-          <button type="submit" className="btn-primary">
-            <IconEdit size={16} /> Agregar producto
+          <button type="submit" className="btn-primary" disabled={submitting}>
+            <IconEdit size={16} /> {submitting ? "Agregando..." : "Agregar producto"}
           </button>
         </form>
       </div>
 
       <div className="admin-card admin-card--wide">
         <h3 className="admin-card__title"><IconClipboard size={16} /> Catálogo actual ({products.length})</h3>
+
+        {productsError && (
+          <p className="form-error"><IconAlert size={13} /> {productsError}</p>
+        )}
+
+        {productsLoading ? (
+          <p className="admin-empty">Cargando productos...</p>
+        ) : products.length === 0 && !productsError ? (
+          <p className="admin-empty">No hay productos cargados todavía.</p>
+        ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
@@ -127,6 +144,7 @@ function ProductsTab() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

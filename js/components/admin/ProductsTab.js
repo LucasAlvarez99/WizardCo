@@ -16,29 +16,38 @@ const EMPTY_PRODUCT = {
 function ProductsTab() {
   const {
     products,
+    productsLoading,
+    productsError,
     addProduct,
     updateProduct,
     deleteProduct
   } = useAdminData();
   const [form, setForm] = useState(EMPTY_PRODUCT);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const handleField = (field, value) => setForm(f => ({
     ...f,
     [field]: value
   }));
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
     if (!form.name.trim() || !form.price) {
       setError("Completá al menos el nombre y el precio.");
       return;
     }
-    addProduct({
+    setSubmitting(true);
+    const result = await addProduct({
       ...form,
       price: Number(form.price),
       discount: Number(form.discount) || 0,
       rating: Number(form.rating) || 5,
       sales: Number(form.sales) || 0
     });
+    setSubmitting(false);
+    if (!result.success) {
+      setError(result.message);
+      return;
+    }
     setForm(EMPTY_PRODUCT);
     setError("");
   };
@@ -112,16 +121,25 @@ function ProductsTab() {
     size: 13
   }), " ", error), /*#__PURE__*/React.createElement("button", {
     type: "submit",
-    className: "btn-primary"
+    className: "btn-primary",
+    disabled: submitting
   }, /*#__PURE__*/React.createElement(IconEdit, {
     size: 16
-  }), " Agregar producto"))), /*#__PURE__*/React.createElement("div", {
+  }), " ", submitting ? "Agregando..." : "Agregar producto"))), /*#__PURE__*/React.createElement("div", {
     className: "admin-card admin-card--wide"
   }, /*#__PURE__*/React.createElement("h3", {
     className: "admin-card__title"
   }, /*#__PURE__*/React.createElement(IconClipboard, {
     size: 16
-  }), " Cat\xE1logo actual (", products.length, ")"), /*#__PURE__*/React.createElement("div", {
+  }), " Cat\xE1logo actual (", products.length, ")"), productsError && /*#__PURE__*/React.createElement("p", {
+    className: "form-error"
+  }, /*#__PURE__*/React.createElement(IconAlert, {
+    size: 13
+  }), " ", productsError), productsLoading ? /*#__PURE__*/React.createElement("p", {
+    className: "admin-empty"
+  }, "Cargando productos...") : products.length === 0 && !productsError ? /*#__PURE__*/React.createElement("p", {
+    className: "admin-empty"
+  }, "No hay productos cargados todav\xEDa.") : /*#__PURE__*/React.createElement("div", {
     className: "admin-table-wrap"
   }, /*#__PURE__*/React.createElement("table", {
     className: "admin-table"

@@ -4,7 +4,7 @@
 
 function CatalogPage({ searchQuery, filters, setFilters, filtersOpen, setFiltersOpen }) {
   const { addToCart } = useCart();
-  const { products } = useAdminData();
+  const { products, productsLoading, productsError } = useAdminData();
   const [sortBy, setSortBy] = useState("relevance");
 
   const filtered = useMemo(() => {
@@ -61,7 +61,17 @@ function CatalogPage({ searchQuery, filters, setFilters, filtersOpen, setFilters
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {productsLoading ? (
+          <div className="empty-state">
+            <IconPackage size={40} strokeWidth={1.2} />
+            <p>Cargando catálogo...</p>
+          </div>
+        ) : productsError ? (
+          <div className="empty-state">
+            <IconPackage size={40} strokeWidth={1.2} />
+            <p>{productsError}</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="empty-state">
             <IconPackage size={40} strokeWidth={1.2} />
             <p>No encontramos publicaciones con esos filtros.</p>

@@ -13,7 +13,9 @@ function CatalogPage({
     addToCart
   } = useCart();
   const {
-    products
+    products,
+    productsLoading,
+    productsError
   } = useAdminData();
   const [sortBy, setSortBy] = useState("relevance");
   const filtered = useMemo(() => {
@@ -68,7 +70,17 @@ function CatalogPage({
     value: "price_desc"
   }, "Mayor precio"), /*#__PURE__*/React.createElement("option", {
     value: "rating"
-  }, "Mejor calificados")))), filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "Mejor calificados")))), productsLoading ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state"
+  }, /*#__PURE__*/React.createElement(IconPackage, {
+    size: 40,
+    strokeWidth: 1.2
+  }), /*#__PURE__*/React.createElement("p", null, "Cargando cat\xE1logo...")) : productsError ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state"
+  }, /*#__PURE__*/React.createElement(IconPackage, {
+    size: 40,
+    strokeWidth: 1.2
+  }), /*#__PURE__*/React.createElement("p", null, productsError)) : filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "empty-state"
   }, /*#__PURE__*/React.createElement(IconPackage, {
     size: 40,
