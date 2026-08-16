@@ -114,6 +114,80 @@ abajo.
    MongoDB, etc.), para que el catálogo/cupones/pedidos sean iguales para
    todos los usuarios y no por navegador/servidor.
 
+## Roadmap
+
+Este roadmap prioriza las áreas que más lo necesitan hoy, en el orden
+decidido para el proyecto. Cada fase se apoya en la anterior, así que el
+orden técnico de implementación no es 100% idéntico al orden de prioridad
+de negocio, pero el resultado final respeta esa prioridad.
+
+### Fase 1 — Base de datos y API de productos (fundamento técnico)
+
+Hoy el catálogo vive en `src/data/products.js` (datos por defecto) y se
+edita desde el panel de administración, pero todo lo editado se guarda
+en `localStorage`: cada navegador tiene su propia copia, nada se comparte
+entre dispositivos ni persiste si alguien borra los datos del sitio.
+
+**Qué se hace:**
+- Base de datos: **MongoDB Atlas, plan gratuito (M0)**. A diferencia de
+  Supabase, el free tier de Atlas **no se pausa por inactividad** — queda
+  disponible indefinidamente. Además reutiliza el mismo motor (MongoDB +
+  Mongoose) que ya usás en `shipnow_api`, así que no hay que aprender un
+  stack nuevo.
+- Backend: se extiende `/server` (Node + Express) con la misma
+  arquitectura por capas que `shipnow_api`
+  (Controller → Service → Repository), agregando un módulo de Productos
+  con endpoints REST (`GET/POST/PUT/DELETE /api/products`).
+- Se migran también **cupones** y **pedidos** a colecciones propias, para
+  sacarlos de `localStorage` (los pedidos del webhook de Mercado Pago ya
+  no se guardarían más en `orders.json`, sino en la base).
+
+### Fase 2 — Panel de administración conectado a la DB (prioridad #1)
+
+Con la API de la Fase 1 lista, `AdminDataContext.jsx` deja de leer/escribir
+`localStorage` y pasa a llamar a la API (`fetch`), igual que ya hace
+`CheckoutView.jsx` con el backend de pagos.
+
+**Qué se hace:**
+- Reemplazar los `useState` + `localStorage` de productos, cupones y
+  pedidos por llamadas reales a la API.
+- Loading states y manejo de errores de red en las tabs del panel
+  (Productos, Cupones, Pedidos).
+- El panel pasa a mostrar los mismos datos sin importar desde qué
+  dispositivo o navegador se entre.
+
+### Fase 3 — Sistema de usuarios real
+
+Reemplaza `AuthContext.jsx` (login simulado, cualquier contraseña de 6+
+caracteres sirve) por autenticación real contra el backend.
+
+**Qué se hace:**
+- Colección `users` en MongoDB (email, hash de contraseña con bcrypt,
+  rol, estado de verificación).
+- Login/registro reales con JWT (o cookies de sesión).
+- Verificación de cuenta por email de verdad (Resend o SendGrid) en vez
+  del código que hoy se muestra en pantalla.
+- El rol de admin deja de depender de que el email contenga la palabra
+  "admin" y pasa a ser un campo en la base, asignable desde el propio
+  panel.
+
+### Fase 4 — Diseño y experiencia de usuario (UI/UX)
+
+Una vez que los datos son reales y persistentes, tiene más sentido
+invertir en pulir la experiencia (hoy la prioridad más baja del grupo):
+
+- Revisión de UX del checkout y el panel de administración con datos
+  reales (loading, vacíos, errores).
+- Mejoras de diseño visual: tipografía, espaciado, identidad de marca.
+- Revisión de responsive/mobile una vez estabilizado el backend nuevo.
+
+### Fuera de este roadmap (por ahora)
+
+Quedan afuera de estas 4 fases, para más adelante: notificación de venta
+100% automática por WhatsApp/Email (requiere cuenta de Meta Business
+verificada) y despliegue productivo del nuevo backend (se puede reusar
+`render.yaml` como base).
+
 ## Cómo modificar el código
 
 El código "fuente" editable (con JSX, más legible) está en `/src`. La
