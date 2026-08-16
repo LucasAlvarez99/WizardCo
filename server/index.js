@@ -28,6 +28,8 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
+const { connectDB } = require("./config/db");
+const productRoutes = require("./routes/productRoutes");
 
 const ORDERS_FILE = path.join(__dirname, "orders.json");
 const PORT = process.env.PORT || 4000;
@@ -61,6 +63,8 @@ const app = express();
 // publicado, para que nadie más use tu backend de pagos.
 app.use(cors(process.env.FRONTEND_URL ? { origin: process.env.FRONTEND_URL } : {}));
 app.use(express.json());
+
+app.use("/api/products", productRoutes);
 
 function readOrders() {
   try {
@@ -176,6 +180,8 @@ app.get("/", (req, res) => {
   res.send("WizardCo backend de pagos — OK. Ver /server/README.md para configurarlo.");
 });
 
+connectDB();
+
 app.listen(PORT, () => {
-  console.log(`WizardCo backend de pagos escuchando en http://localhost:${PORT}`);
+  console.log(`WizardCo backend escuchando en http://localhost:${PORT}`);
 });
