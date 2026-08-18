@@ -6,10 +6,6 @@
  * email). Si el email ya existe, lo promueve a admin y lo marca como
  * verificado en vez de duplicarlo.
  *
- * Uso:
- *   cd server
- *   node seed/createAdmin.js admin@wizardco.com "unaContraseñaSegura" "Nombre Admin"
- *
  * El nombre es opcional (por defecto "Administrador").
  */
 
