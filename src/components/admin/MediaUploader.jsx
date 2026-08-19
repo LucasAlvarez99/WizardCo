@@ -8,15 +8,15 @@
    onChange(nextArray) se llama cada vez que se agrega o quita un archivo. */
 
 async function uploadToCloudinary(file, resourceType) {
-  if (CLOUDINARY_CLOUD_NAME === "tu-cloud-name") {
+  if (!CLOUDINARY_CLOUD_NAME || CLOUDINARY_CLOUD_NAME === "WizardCo-productos") {
     throw new Error("Falta configurar Cloudinary: completá CLOUDINARY_CLOUD_NAME en src/data/config.js.");
   }
 
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  // Carpeta fija para separar los assets de WizardCo del resto de tu cuenta.
-  formData.append("folder", "wizardco/productos");
+  // La carpeta ya está fija en el preset (wizardco/productos), no hace
+  // falta (ni conviene) mandarla también acá.
 
   let response;
   try {
