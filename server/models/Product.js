@@ -21,6 +21,17 @@ const productSchema = new mongoose.Schema(
     seller: { type: String, trim: true },
     gradient: { type: String, trim: true },
     stock: { type: Number, default: null }, // null = sin control de stock
+    // URLs de Cloudinary (subidas directo desde el navegador con un upload
+    // preset "unsigned" — nunca pasan por este backend). Hasta 3 fotos.
+    images: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: (arr) => arr.length <= 3,
+        message: "Un producto puede tener como máximo 3 fotos.",
+      },
+    },
+    video: { type: String, default: null },
   },
   {
     timestamps: true,

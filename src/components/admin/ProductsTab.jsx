@@ -12,6 +12,8 @@ const EMPTY_PRODUCT = {
   sales: "0",
   seller: "Vendedor Confiable",
   gradient: "grad-blue",
+  images: [],
+  video: null,
 };
 
 function ProductsTab() {
@@ -19,6 +21,7 @@ function ProductsTab() {
   const [form, setForm] = useState(EMPTY_PRODUCT);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingMediaProduct, setEditingMediaProduct] = useState(null);
 
   const handleField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -82,6 +85,22 @@ function ProductsTab() {
             </label>
           </div>
 
+          <MediaUploader
+            label="Fotos (hasta 3)"
+            resourceType="image"
+            max={3}
+            value={form.images}
+            onChange={(images) => handleField("images", images)}
+          />
+
+          <MediaUploader
+            label="Video (opcional)"
+            resourceType="video"
+            max={1}
+            value={form.video ? [form.video] : []}
+            onChange={(videos) => handleField("video", videos[0] || null)}
+          />
+
           {error && <p className="form-error"><IconAlert size={13} /> {error}</p>}
 
           <button type="submit" className="btn-primary" disabled={submitting}>
@@ -107,6 +126,7 @@ function ProductsTab() {
             <thead>
               <tr>
                 <th>Producto</th>
+                <th>Fotos</th>
                 <th>Categoría</th>
                 <th>Precio</th>
                 <th>Desc.</th>
@@ -117,6 +137,23 @@ function ProductsTab() {
               {products.map((p) => (
                 <tr key={p.id}>
                   <td className="admin-table__main">{p.name}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="admin-media-cell"
+                      onClick={() => setEditingMediaProduct(p)}
+                      aria-label="Editar fotos y video"
+                    >
+                      {p.images && p.images[0] ? (
+                        <img src={p.images[0]} alt="" />
+                      ) : (
+                        <span className="admin-media-cell__empty"><IconUpload size={14} /></span>
+                      )}
+                      <span className="admin-media-cell__count">
+                        {(p.images || []).length}/3{p.video ? " · 🎬" : ""}
+                      </span>
+                    </button>
+                  </td>
                   <td>{CATEGORIES.find((c) => c.id === p.category)?.label || p.category}</td>
                   <td>
                     <input
@@ -145,6 +182,59 @@ function ProductsTab() {
           </table>
         </div>
         )}
+      </div>
+
+      {editingMediaProduct && (
+        <ProductMediaModal
+          product={editingMediaProduct}
+          onUpdate={updateProduct}
+          onClose={() => setEditingMediaProduct(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProductMediaModal({ product, onUpdate, onClose }) {
+  const [images, setImages] = useState(product.images || []);
+  const [video, setVideo] = useState(product.video || null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const persist = async (patch) => {
+    setSaving(true);
+    setError("");
+    const result = await onUpdate(product.id, patch);
+    setSaving(false);
+    if (!result.success) setError(result.message);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-overlay__backdrop" onClick={onClose} />
+      <div className="modal modal--wide">
+        <button className="modal__close" onClick={onClose}><IconX size={20} /></button>
+        <p className="modal__title">Fotos y video</p>
+        <p className="modal__subtitle">{product.name}</p>
+
+        <MediaUploader
+          label="Fotos (hasta 3)"
+          resourceType="image"
+          max={3}
+          value={images}
+          onChange={(next) => { setImages(next); persist({ images: next }); }}
+        />
+
+        <MediaUploader
+          label="Video (opcional)"
+          resourceType="video"
+          max={1}
+          value={video ? [video] : []}
+          onChange={(next) => { const v = next[0] || null; setVideo(v); persist({ video: v }); }}
+        />
+
+        {saving && <p className="admin-empty">Guardando...</p>}
+        {error && <p className="form-error"><IconAlert size={13} /> {error}</p>}
       </div>
     </div>
   );

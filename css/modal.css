@@ -13,6 +13,7 @@
   padding: 24px;
   animation: scaleIn 0.3s ease-in-out;
 }
+.modal--wide { max-width: 480px; }
 .modal__close { position: absolute; top: 16px; right: 16px; color: var(--color-text-muted); }
 .modal__close:hover { color: var(--color-text-primary); }
 .modal__brand { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }

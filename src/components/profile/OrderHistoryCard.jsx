@@ -1,15 +1,15 @@
 /* src/components/profile/OrderHistoryCard.jsx */
 
 function OrderHistoryCard() {
-  const { user } = useAuth();
-  const { orders } = useAdminData();
-
-  const myOrders = orders.filter((o) => o.customerEmail === user.email);
+  const { myOrders, myOrdersLoading, myOrdersError } = useAdminData();
 
   return (
     <div className="profile-card profile-card--block">
       <p className="profile-card__title"><IconClipboard size={16} /> Mis pedidos ({myOrders.length})</p>
-      {myOrders.length === 0 ? (
+      {myOrdersError && <p className="form-error"><IconAlert size={13} /> {myOrdersError}</p>}
+      {myOrdersLoading ? (
+        <p className="admin-empty">Cargando pedidos...</p>
+      ) : myOrders.length === 0 ? (
         <p className="admin-empty">Todavía no hiciste ninguna compra.</p>
       ) : (
         <ul className="admin-orders-list">

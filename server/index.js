@@ -1,12 +1,15 @@
 /**
  * server/index.js
  *
- * Backend mínimo para procesar pagos REALES con Mercado Pago Checkout Pro.
- * Existe porque el access token de Mercado Pago es secreto y JAMÁS puede
- * vivir en código de frontend (cualquiera que abra las devtools lo vería).
+ * Backend de WizardCo: procesa pagos REALES con Mercado Pago Checkout Pro
+ * y expone la API (productos, auth, cupones, pedidos) conectada a MongoDB
+ * Atlas. El access token de Mercado Pago es secreto y JAMÁS puede vivir en
+ * código de frontend (cualquiera que abra las devtools lo vería).
  *
- * Flujo:
- *  1. El frontend llama a POST /api/create-preference con el carrito.
+ * Flujo de pago:
+ *  1. El frontend crea el pedido en la base (POST /api/orders, estado
+ *     "pending_payment") y llama a POST /api/create-preference con el
+ *     carrito y esa misma external_reference.
  *  2. Este servidor crea la preferencia en Mercado Pago (usando el access
  *     token secreto) y devuelve la URL de pago (init_point).
  *  3. El frontend redirige al usuario a esa URL — ahí paga de verdad,
@@ -14,25 +17,20 @@
  *     el frontend ven el número de tarjeta/cuenta en ningún momento.
  *  4. Mercado Pago confirma el pago llamando a POST /api/webhook (esto
  *     pasa del lado del servidor, sin depender de que el usuario vuelva
- *     al navegador — así se puede confirmar una venta aunque cierre la
- *     pestaña antes de volver).
- *
- * Persistencia: para esta demo los pedidos confirmados por webhook se
- * guardan en un archivo JSON (orders.json). En producción esto debería
- * ser una base de datos real (Postgres, MongoDB, etc.).
+ *     al navegador), que actualiza el pedido real en MongoDB.
  */
 
 require("dotenv").config();
-const fs = require("fs");
-const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 const { connectDB } = require("./config/db");
 const productRoutes = require("./routes/productRoutes");
 const authRoutes = require("./routes/authRoutes");
+const couponRoutes = require("./routes/couponRoutes");
+const orderRoutes = require("./routes/orderRoutes");
+const orderService = require("./services/orderService");
 
-const ORDERS_FILE = path.join(__dirname, "orders.json");
 const PORT = process.env.PORT || 4000;
 const TOKEN = process.env.MP_ACCESS_TOKEN || "";
 
@@ -67,18 +65,8 @@ app.use(express.json());
 
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
-
-function readOrders() {
-  try {
-    return JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"));
-  } catch (e) {
-    return [];
-  }
-}
-
-function writeOrders(orders) {
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
-}
+app.use("/api/coupons", couponRoutes);
+app.use("/api/orders", orderRoutes);
 
 /* ---------------------------------------------------------------------- */
 /* Crear preferencia de pago (esto es lo que dispara Checkout Pro)         */
@@ -151,18 +139,15 @@ app.post("/api/webhook", async (req, res) => {
       const payment = new Payment(mpClient);
       const info = await payment.get({ id: paymentId });
 
-      const orders = readOrders();
-      orders.unshift({
-        id: `WZ-${paymentId}`,
-        date: new Date().toISOString(),
-        status: info.status, // approved | pending | rejected | etc.
+      await orderService.confirmPaymentFromWebhook({
         externalReference: info.external_reference,
+        paymentId,
+        paymentStatus: info.status, // approved | pending | rejected | etc.
         amount: info.transaction_amount,
         payerEmail: info.payer && info.payer.email,
       });
-      writeOrders(orders);
 
-      console.log(`[WizardCo] Pago ${paymentId} → estado: ${info.status}`);
+      console.log(`[WizardCo] Pago ${paymentId} → estado: ${info.status} (pedido ${info.external_reference})`);
     }
 
     res.sendStatus(200);
@@ -171,11 +156,6 @@ app.post("/api/webhook", async (req, res) => {
     // Devolvemos 200 igual: si no, Mercado Pago reintenta indefinidamente.
     res.sendStatus(200);
   }
-});
-
-/* Lectura simple de los pedidos confirmados por webhook (para debug/uso interno). */
-app.get("/api/orders", (req, res) => {
-  res.json(readOrders());
 });
 
 app.get("/", (req, res) => {

@@ -1,31 +1,37 @@
 /* ============================================================================
-   AdminDataContext.jsx — productos (API real contra MongoDB Atlas vía
-   /server, protegido con el token de admin de AuthContext). Cupones,
-   pedidos y contacto siguen en localStorage por ahora — se migran en una
-   fase aparte.
+   AdminDataContext.jsx — productos, cupones y pedidos: todo contra la API
+   real (MongoDB Atlas vía /server), protegido con el token de sesión de
+   AuthContext donde corresponde. Solo "contact" (a dónde llegan los avisos
+   de venta) sigue en localStorage.
 ============================================================================ */
 
 const AdminDataContext = createContext(null);
 
 const LS_KEYS = {
-  coupons: "wizardco_coupons",
-  orders: "wizardco_orders",
   contact: "wizardco_contact",
 };
 
 function AdminDataProvider({ children }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const isAdmin = !!(user && user.isAdmin);
 
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState("");
 
-  const [coupons, setCoupons] = useState(() => loadJSON(LS_KEYS.coupons, INITIAL_COUPONS));
-  const [orders, setOrders] = useState(() => loadJSON(LS_KEYS.orders, []));
-  const [contact, setContact] = useState(() => loadJSON(LS_KEYS.contact, DEFAULT_ADMIN_CONTACT));
+  const [coupons, setCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [couponsError, setCouponsError] = useState("");
 
-  useEffect(() => saveJSON(LS_KEYS.coupons, coupons), [coupons]);
-  useEffect(() => saveJSON(LS_KEYS.orders, orders), [orders]);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
+
+  const [myOrders, setMyOrders] = useState([]);
+  const [myOrdersLoading, setMyOrdersLoading] = useState(false);
+  const [myOrdersError, setMyOrdersError] = useState("");
+
+  const [contact, setContact] = useState(() => loadJSON(LS_KEYS.contact, DEFAULT_ADMIN_CONTACT));
   useEffect(() => saveJSON(LS_KEYS.contact, contact), [contact]);
 
   /* ---------------- Productos (API real) ---------------- */
@@ -89,63 +95,143 @@ function AdminDataProvider({ children }) {
     }
   }, [token, products]);
 
-  /* ---------------- Cupones (CouponManager) ---------------- */
-  const addCoupon = useCallback((coupon) => {
-    const code = coupon.code.trim().toUpperCase();
-    let result = { success: true, message: "Cupón creado." };
-    setCoupons((prev) => {
-      if (prev.some((c) => c.code === code)) {
-        result = { success: false, message: "Ya existe un cupón con ese código." };
-        return prev;
-      }
-      return [...prev, { code, discountPercentage: Number(coupon.discountPercentage), usableCount: Number(coupon.usableCount) }];
-    });
-    return result;
-  }, []);
+  /* ---------------- Cupones (CouponManager) ----------------
+     Listar/crear/borrar requiere admin. Aplicar un cupón en el checkout
+     solo requiere estar logueado (cualquier usuario). */
 
-  const deleteCoupon = useCallback((code) => {
+  const fetchCoupons = useCallback(async () => {
+    if (!token) return;
+    setCouponsLoading(true);
+    setCouponsError("");
+    try {
+      const data = await apiRequest("/api/coupons", { token });
+      setCoupons(data);
+    } catch (err) {
+      setCouponsError(err.message);
+    } finally {
+      setCouponsLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (isAdmin) fetchCoupons();
+    else setCoupons([]);
+  }, [isAdmin, fetchCoupons]);
+
+  const addCoupon = useCallback(async (coupon) => {
+    try {
+      const created = await apiRequest("/api/coupons", {
+        method: "POST",
+        token,
+        body: {
+          code: coupon.code.trim().toUpperCase(),
+          discountPercentage: Number(coupon.discountPercentage),
+          usableCount: Number(coupon.usableCount),
+        },
+      });
+      setCoupons((prev) => [created, ...prev]);
+      return { success: true, message: "Cupón creado." };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  }, [token]);
+
+  const deleteCoupon = useCallback(async (code) => {
+    const previous = coupons;
     setCoupons((prev) => prev.filter((c) => c.code !== code));
-  }, []);
+    try {
+      await apiRequest(`/api/coupons/${code}`, { method: "DELETE", token });
+      return { success: true };
+    } catch (err) {
+      setCoupons(previous);
+      return { success: false, message: err.message };
+    }
+  }, [token, coupons]);
 
-  // Algoritmo de decremento y eliminación automática al agotarse los usos.
+  // Llamado desde el checkout (CartContext). Requiere estar logueado, pero
+  // no ser admin — el decremento de usos es atómico del lado del server.
   const applyCoupon = useCallback(
-    (rawCode) => {
-      const code = rawCode.trim().toUpperCase();
+    async (rawCode) => {
+      const code = rawCode.trim();
       if (!code) return { success: false, message: "Ingresá un código de cupón." };
-
-      const found = coupons.find((c) => c.code === code);
-      if (!found) return { success: false, message: "El cupón no existe o ya no está disponible." };
-
-      if (found.usableCount <= 0) {
-        setCoupons((prev) => prev.filter((c) => c.code !== code));
-        return { success: false, message: "Este cupón ya alcanzó su límite de usos." };
+      try {
+        const result = await apiRequest("/api/coupons/apply", { method: "POST", token, body: { code } });
+        return { success: true, ...result };
+      } catch (err) {
+        return { success: false, message: err.message };
       }
-
-      const newCount = found.usableCount - 1;
-      setCoupons((prev) =>
-        newCount <= 0 ? prev.filter((c) => c.code !== code) : prev.map((c) => (c.code === code ? { ...c, usableCount: newCount } : c))
-      );
-
-      return {
-        success: true,
-        discountPercentage: found.discountPercentage,
-        code: found.code,
-        message:
-          newCount > 0
-            ? `Cupón ${found.code} aplicado (-${found.discountPercentage}%). Quedan ${newCount} usos.`
-            : `Cupón ${found.code} aplicado (-${found.discountPercentage}%). Era el último uso disponible: se agotó.`,
-      };
     },
-    [coupons]
+    [token]
   );
 
-  /* ---------------- Pedidos (para el panel de administración y el perfil) ---------------- */
-  const logOrder = useCallback((order) => {
-    setOrders((prev) => [
-      { id: `WZ-${Date.now()}`, date: new Date().toISOString(), ...order },
-      ...prev,
-    ]);
-  }, []);
+  /* ---------------- Pedidos ----------------
+     "orders" (todos) es para el panel de administración (admin). "myOrders"
+     es para el historial de compras del usuario logueado. */
+
+  const fetchOrders = useCallback(async () => {
+    if (!token) return;
+    setOrdersLoading(true);
+    setOrdersError("");
+    try {
+      setOrders(await apiRequest("/api/orders", { token }));
+    } catch (err) {
+      setOrdersError(err.message);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (isAdmin) fetchOrders();
+    else setOrders([]);
+  }, [isAdmin, fetchOrders]);
+
+  const fetchMyOrders = useCallback(async () => {
+    if (!token) return;
+    setMyOrdersLoading(true);
+    setMyOrdersError("");
+    try {
+      setMyOrders(await apiRequest("/api/orders/mine", { token }));
+    } catch (err) {
+      setMyOrdersError(err.message);
+    } finally {
+      setMyOrdersLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) fetchMyOrders();
+    else setMyOrders([]);
+  }, [token, fetchMyOrders]);
+
+  // Crea el pedido (estado "pending_payment") ANTES de redirigir a Mercado
+  // Pago — así el webhook tiene un pedido real para actualizar cuando
+  // confirme el pago, sin depender de que la persona vuelva al navegador.
+  const createOrder = useCallback(
+    async (orderData) => {
+      try {
+        const order = await apiRequest("/api/orders", { method: "POST", token, body: orderData });
+        return { success: true, order };
+      } catch (err) {
+        return { success: false, message: err.message };
+      }
+    },
+    [token]
+  );
+
+  // Usado en la pantalla de "volviste de Mercado Pago" para traer el estado
+  // real y actualizado del pedido (el webhook puede tardar unos segundos).
+  const getOrderByReference = useCallback(
+    async (ref) => {
+      try {
+        const order = await apiRequest(`/api/orders/by-reference/${ref}`, { token });
+        return { success: true, order };
+      } catch (err) {
+        return { success: false, message: err.message };
+      }
+    },
+    [token]
+  );
 
   /* ---------------- Configuración de contacto (notificaciones de venta) ---------------- */
   const updateContact = useCallback((patch) => {
@@ -163,11 +249,20 @@ function AdminDataProvider({ children }) {
         updateProduct,
         deleteProduct,
         coupons,
+        couponsLoading,
+        couponsError,
         addCoupon,
         deleteCoupon,
         applyCoupon,
         orders,
-        logOrder,
+        ordersLoading,
+        ordersError,
+        refetchOrders: fetchOrders,
+        myOrders,
+        myOrdersLoading,
+        myOrdersError,
+        createOrder,
+        getOrderByReference,
         contact,
         updateContact,
       }}

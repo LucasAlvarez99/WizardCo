@@ -1,3 +1,4 @@
+
 # WizardCo — E-commerce de impresión 3D
 
 ## Por qué daba el error de consola (ya resuelto)

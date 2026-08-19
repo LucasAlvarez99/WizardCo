@@ -28,15 +28,13 @@
 
   <!-- Bootstrap: expone los hooks de React como globales -->
   <script>
-    const { useState, useContext, useMemo, useCallback, useEffect, createContext, Fragment } = React;
+    const { useState, useContext, useMemo, useCallback, useEffect, useRef, createContext, Fragment } = React;
   </script>
 
   <!-- Datos, un archivo por objeto -->
   <script src="js/data/helpers.js"></script>
   <script src="js/data/categories.js"></script>
   <script src="js/data/filterOptions.js"></script>
-  <script src="js/data/products.js"></script>
-  <script src="js/data/coupons.js"></script>
   <script src="js/data/adminContact.js"></script>
   <script src="js/data/localStore.js"></script>
   <script src="js/data/config.js"></script>
@@ -64,6 +62,7 @@
   <script src="js/components/CheckoutView.js"></script>
 
   <!-- Componentes del panel de administración -->
+  <script src="js/components/admin/MediaUploader.js"></script>
   <script src="js/components/admin/ProductsTab.js"></script>
   <script src="js/components/admin/CouponsTab.js"></script>
   <script src="js/components/admin/OrdersTab.js"></script>

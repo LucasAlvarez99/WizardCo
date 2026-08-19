@@ -17,3 +17,13 @@ const PRODUCTION_API_URL = "https://wizardco-backend.onrender.com";
 const IS_LOCAL = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
 const API_BASE_URL = IS_LOCAL ? "http://localhost:4000" : PRODUCTION_API_URL;
+
+/* --- Cloudinary (fotos/video de productos) ---
+   Las subidas van DIRECTO del navegador a Cloudinary (no pasan por
+   nuestro backend), usando un "upload preset" sin firmar. Por diseño, el
+   cloud name y el nombre del preset son públicos — lo que los mantiene
+   seguros es que el preset esté configurado en modo "unsigned" con
+   restricciones (tamaño máx., carpeta fija), no que estén ocultos.
+   Configuralos en Cloudinary → Settings → Upload → Upload presets. */
+const CLOUDINARY_CLOUD_NAME = "WizardCo-productos";
+const CLOUDINARY_UPLOAD_PRESET = "wizardco-productos";

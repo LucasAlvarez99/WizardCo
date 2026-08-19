@@ -11,7 +11,9 @@ const EMPTY_PRODUCT = {
   rating: "5",
   sales: "0",
   seller: "Vendedor Confiable",
-  gradient: "grad-blue"
+  gradient: "grad-blue",
+  images: [],
+  video: null
 };
 function ProductsTab() {
   const {
@@ -25,6 +27,7 @@ function ProductsTab() {
   const [form, setForm] = useState(EMPTY_PRODUCT);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingMediaProduct, setEditingMediaProduct] = useState(null);
   const handleField = (field, value) => setForm(f => ({
     ...f,
     [field]: value
@@ -115,7 +118,19 @@ function ProductsTab() {
     type: "checkbox",
     checked: form.freeShipping,
     onChange: e => handleField("freeShipping", e.target.checked)
-  }), /*#__PURE__*/React.createElement("span", null, "Env\xEDo gratis"))), error && /*#__PURE__*/React.createElement("p", {
+  }), /*#__PURE__*/React.createElement("span", null, "Env\xEDo gratis"))), /*#__PURE__*/React.createElement(MediaUploader, {
+    label: "Fotos (hasta 3)",
+    resourceType: "image",
+    max: 3,
+    value: form.images,
+    onChange: images => handleField("images", images)
+  }), /*#__PURE__*/React.createElement(MediaUploader, {
+    label: "Video (opcional)",
+    resourceType: "video",
+    max: 1,
+    value: form.video ? [form.video] : [],
+    onChange: videos => handleField("video", videos[0] || null)
+  }), error && /*#__PURE__*/React.createElement("p", {
     className: "form-error"
   }, /*#__PURE__*/React.createElement(IconAlert, {
     size: 13
@@ -143,11 +158,25 @@ function ProductsTab() {
     className: "admin-table-wrap"
   }, /*#__PURE__*/React.createElement("table", {
     className: "admin-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Producto"), /*#__PURE__*/React.createElement("th", null, "Categor\xEDa"), /*#__PURE__*/React.createElement("th", null, "Precio"), /*#__PURE__*/React.createElement("th", null, "Desc."), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, products.map(p => /*#__PURE__*/React.createElement("tr", {
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Producto"), /*#__PURE__*/React.createElement("th", null, "Fotos"), /*#__PURE__*/React.createElement("th", null, "Categor\xEDa"), /*#__PURE__*/React.createElement("th", null, "Precio"), /*#__PURE__*/React.createElement("th", null, "Desc."), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, products.map(p => /*#__PURE__*/React.createElement("tr", {
     key: p.id
   }, /*#__PURE__*/React.createElement("td", {
     className: "admin-table__main"
-  }, p.name), /*#__PURE__*/React.createElement("td", null, CATEGORIES.find(c => c.id === p.category)?.label || p.category), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("input", {
+  }, p.name), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "admin-media-cell",
+    onClick: () => setEditingMediaProduct(p),
+    "aria-label": "Editar fotos y video"
+  }, p.images && p.images[0] ? /*#__PURE__*/React.createElement("img", {
+    src: p.images[0],
+    alt: ""
+  }) : /*#__PURE__*/React.createElement("span", {
+    className: "admin-media-cell__empty"
+  }, /*#__PURE__*/React.createElement(IconUpload, {
+    size: 14
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "admin-media-cell__count"
+  }, (p.images || []).length, "/3", p.video ? " · 🎬" : ""))), /*#__PURE__*/React.createElement("td", null, CATEGORIES.find(c => c.id === p.category)?.label || p.category), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("input", {
     type: "number",
     className: "admin-inline-input",
     value: p.price,
@@ -167,5 +196,72 @@ function ProductsTab() {
     "aria-label": "Eliminar producto"
   }, /*#__PURE__*/React.createElement(IconTrash, {
     size: 15
-  }))))))))));
+  }))))))))), editingMediaProduct && /*#__PURE__*/React.createElement(ProductMediaModal, {
+    product: editingMediaProduct,
+    onUpdate: updateProduct,
+    onClose: () => setEditingMediaProduct(null)
+  }));
+}
+function ProductMediaModal({
+  product,
+  onUpdate,
+  onClose
+}) {
+  const [images, setImages] = useState(product.images || []);
+  const [video, setVideo] = useState(product.video || null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const persist = async patch => {
+    setSaving(true);
+    setError("");
+    const result = await onUpdate(product.id, patch);
+    setSaving(false);
+    if (!result.success) setError(result.message);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "modal-overlay"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-overlay__backdrop",
+    onClick: onClose
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "modal modal--wide"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "modal__close",
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement(IconX, {
+    size: 20
+  })), /*#__PURE__*/React.createElement("p", {
+    className: "modal__title"
+  }, "Fotos y video"), /*#__PURE__*/React.createElement("p", {
+    className: "modal__subtitle"
+  }, product.name), /*#__PURE__*/React.createElement(MediaUploader, {
+    label: "Fotos (hasta 3)",
+    resourceType: "image",
+    max: 3,
+    value: images,
+    onChange: next => {
+      setImages(next);
+      persist({
+        images: next
+      });
+    }
+  }), /*#__PURE__*/React.createElement(MediaUploader, {
+    label: "Video (opcional)",
+    resourceType: "video",
+    max: 1,
+    value: video ? [video] : [],
+    onChange: next => {
+      const v = next[0] || null;
+      setVideo(v);
+      persist({
+        video: v
+      });
+    }
+  }), saving && /*#__PURE__*/React.createElement("p", {
+    className: "admin-empty"
+  }, "Guardando..."), error && /*#__PURE__*/React.createElement("p", {
+    className: "form-error"
+  }, /*#__PURE__*/React.createElement(IconAlert, {
+    size: 13
+  }), " ", error)));
 }

@@ -14,8 +14,12 @@ function ProductCard({ product, onAdd }) {
 
   return (
     <div className="product-card">
-      <div className={`product-card__media ${product.gradient}`}>
-        <IconPrinter size={40} strokeWidth={1.5} />
+      <div className={`product-card__media ${product.images && product.images[0] ? "" : product.gradient}`}>
+        {product.images && product.images[0] ? (
+          <img className="product-card__photo" src={product.images[0]} alt={product.name} />
+        ) : (
+          <IconPrinter size={40} strokeWidth={1.5} />
+        )}
         {product.discount > 0 && (
           <span className="product-card__badge-discount">-{product.discount}%</span>
         )}

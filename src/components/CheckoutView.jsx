@@ -6,50 +6,81 @@
    query params (ver App.jsx) y se resuelve con la prop `paymentReturn`.
 ============================================================================ */
 
-function buildBackUrls() {
+function buildBackUrls(externalReference) {
   const origin = window.location.origin + window.location.pathname;
+  const ref = encodeURIComponent(externalReference);
   return {
-    success: `${origin}?mp_status=success`,
-    failure: `${origin}?mp_status=failure`,
-    pending: `${origin}?mp_status=pending`,
+    success: `${origin}?mp_status=success&external_reference=${ref}`,
+    failure: `${origin}?mp_status=failure&external_reference=${ref}`,
+    pending: `${origin}?mp_status=pending&external_reference=${ref}`,
   };
 }
 
 function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentReturn, onClearPaymentReturn }) {
   const { user } = useAuth();
   const { items, totals, appliedCoupon, applyCoupon, removeCoupon, clearCart } = useCart();
-  const { logOrder, contact } = useAdminData();
+  const { createOrder, getOrderByReference, refetchOrders, contact } = useAdminData();
   const [couponInput, setCouponInput] = useState("");
   const [couponMessage, setCouponMessage] = useState(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [payError, setPayError] = useState(null);
   const [resolvedOrder, setResolvedOrder] = useState(null);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState(null);
 
-  // Al volver desde Mercado Pago, resolvemos el resultado una sola vez.
+  // Al volver desde Mercado Pago, buscamos el pedido real por su
+  // external_reference (el webhook puede tardar unos segundos en
+  // confirmar el pago, así que reintentamos unas pocas veces).
   useEffect(() => {
-    if (!paymentReturn) return;
-    const pendingRaw = localStorage.getItem("wizardco_pending_order");
-    const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+    if (!paymentReturn || !paymentReturn.externalReference) return;
+    if (paymentReturn.status === "failure") return; // acá no tocamos el carrito, se reintenta
 
-    if (paymentReturn.status === "success" && pending) {
-      const order = { ...pending, paymentStatus: "approved" };
-      logOrder(order);
+    let cancelled = false;
+    let attempts = 0;
+
+    async function poll() {
+      attempts += 1;
+      const result = await getOrderByReference(paymentReturn.externalReference);
+      if (cancelled) return;
+
+      if (!result.success) {
+        setResolveError(result.message);
+        setResolving(false);
+        return;
+      }
+
+      const order = result.order;
+      // Si el webhook todavía no confirmó, el pedido sigue en
+      // "pending_payment" — reintentamos unas pocas veces antes de
+      // resignarnos a mostrarlo como "en proceso".
+      if (order.paymentStatus === "pending_payment" && attempts < 6) {
+        setTimeout(poll, 2500);
+        return;
+      }
+
       setResolvedOrder(order);
-      clearCart();
-      localStorage.removeItem("wizardco_pending_order");
-    } else if (paymentReturn.status === "pending" && pending) {
-      const order = { ...pending, paymentStatus: "pending" };
-      logOrder(order);
-      setResolvedOrder(order);
-      clearCart();
-      localStorage.removeItem("wizardco_pending_order");
+      setResolving(false);
+      if (order.paymentStatus === "approved" || order.paymentStatus === "pending") {
+        clearCart();
+        refetchOrders();
+      }
     }
-    // en "failure" no tocamos el carrito: dejamos que la persona reintente.
+
+    setResolving(true);
+    setResolveError(null);
+    poll();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line
   }, [paymentReturn]);
 
-  const handleApplyCoupon = () => {
-    const result = applyCoupon(couponInput);
+  const handleApplyCoupon = async () => {
+    setApplyingCoupon(true);
+    const result = await applyCoupon(couponInput);
+    setApplyingCoupon(false);
     setCouponMessage(result);
     if (result.success) setCouponInput("");
   };
@@ -63,17 +94,24 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentRetur
     setPayError(null);
     setRedirecting(true);
 
-    const order = {
-      customerName: user.name,
-      customerEmail: user.email,
+    // 1. Crear el pedido real en la base (estado "pending_payment") antes
+    //    de ir a Mercado Pago, para que el webhook tenga qué actualizar.
+    const orderResult = await createOrder({
       items: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
       subtotal: totals.subtotal,
       discountAmount: totals.discountAmount,
       tax: totals.tax,
       total: totals.total,
       couponCode: appliedCoupon ? appliedCoupon.code : null,
-    };
-    const externalReference = `WZ-${Date.now()}`;
+    });
+
+    if (!orderResult.success) {
+      setRedirecting(false);
+      setPayError(orderResult.message);
+      return;
+    }
+
+    const { externalReference } = orderResult.order;
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/create-preference`, {
@@ -83,7 +121,7 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentRetur
           items: items.map((i) => ({ title: i.name, quantity: i.qty, unit_price: i.price })),
           payer: { email: user.email, name: user.name },
           external_reference: externalReference,
-          back_urls: buildBackUrls(),
+          back_urls: buildBackUrls(externalReference),
         }),
       });
 
@@ -94,9 +132,6 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentRetur
       }
 
       const data = await response.json();
-      // Guardamos el pedido pendiente para poder registrarlo cuando la
-      // persona vuelva desde Mercado Pago (ver el useEffect de arriba).
-      localStorage.setItem("wizardco_pending_order", JSON.stringify({ ...order, externalReference }));
       window.location.href = data.init_point || data.sandbox_init_point;
     } catch (err) {
       setRedirecting(false);
@@ -123,8 +158,33 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentRetur
     );
   }
 
+  if (paymentReturn && (paymentReturn.status === "success" || paymentReturn.status === "pending") && resolving) {
+    return (
+      <div className="order-success">
+        <div className="order-success__icon order-success__icon--pending">
+          <IconLoader size={32} />
+        </div>
+        <h2>Confirmando tu pago...</h2>
+        <p>Esto puede tardar unos segundos mientras Mercado Pago nos avisa del resultado.</p>
+      </div>
+    );
+  }
+
+  if (paymentReturn && (paymentReturn.status === "success" || paymentReturn.status === "pending") && resolveError) {
+    return (
+      <div className="order-success order-success--error">
+        <div className="order-success__icon order-success__icon--error"><IconAlert size={32} /></div>
+        <h2>No pudimos confirmar tu pedido acá</h2>
+        <p>{resolveError} Si Mercado Pago te mostró la confirmación, tu pago se procesó igual — revisá "Mis pedidos" en tu perfil en unos minutos.</p>
+        <button className="btn-primary" style={{ marginTop: 20, maxWidth: 240, marginLeft: "auto", marginRight: "auto" }} onClick={onFinish}>
+          Volver al catálogo
+        </button>
+      </div>
+    );
+  }
+
   if (paymentReturn && (paymentReturn.status === "success" || paymentReturn.status === "pending") && resolvedOrder) {
-    const isPending = resolvedOrder.paymentStatus === "pending";
+    const isPending = resolvedOrder.paymentStatus === "pending" || resolvedOrder.paymentStatus === "pending_payment";
     const message = `Nuevo pedido ${isPending ? "(pago pendiente) " : ""}\nCliente: ${resolvedOrder.customerName} (${resolvedOrder.customerEmail})\n\n${resolvedOrder.items
       .map((i) => `• ${i.qty}x ${i.name}`)
       .join("\n")}\n\nTotal: ${formatCurrency(resolvedOrder.total)}`;
@@ -214,7 +274,9 @@ function CheckoutView({ onBack, onFinish, onGoProfile, onOpenLogin, paymentRetur
                   onChange={(e) => setCouponInput(e.target.value)}
                   placeholder="Ej: DESCUENTO3D"
                 />
-                <button onClick={handleApplyCoupon}>Aplicar</button>
+                <button onClick={handleApplyCoupon} disabled={applyingCoupon}>
+                  {applyingCoupon ? "Aplicando..." : "Aplicar"}
+                </button>
               </div>
             )}
             {couponMessage && (

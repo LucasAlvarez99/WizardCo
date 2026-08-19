@@ -25,6 +25,13 @@ class ValidationError extends Error {
 
 const VALID_FILE_TYPES = ["fisico", "stl"];
 
+// Solo aceptamos URLs de Cloudinary acá — evita que alguien mande cualquier
+// URL arbitraria (por ejemplo, apuntando a contenido malicioso) directo a
+// la API, saltándose el widget de subida del panel.
+function isCloudinaryUrl(url) {
+  return typeof url === "string" && /^https:\/\/res\.cloudinary\.com\//.test(url);
+}
+
 function validateProductInput(data, { partial = false } = {}) {
   const errors = [];
 
@@ -51,6 +58,16 @@ function validateProductInput(data, { partial = false } = {}) {
   if (data.discount !== undefined) {
     if (typeof data.discount !== "number" || data.discount < 0 || data.discount > 100) {
       errors.push("El descuento debe ser un número entre 0 y 100.");
+    }
+  }
+  if (data.images !== undefined) {
+    if (!Array.isArray(data.images) || data.images.length > 3 || !data.images.every(isCloudinaryUrl)) {
+      errors.push("Las fotos deben ser hasta 3 URLs de Cloudinary.");
+    }
+  }
+  if (data.video !== undefined && data.video !== null && data.video !== "") {
+    if (!isCloudinaryUrl(data.video)) {
+      errors.push("El video debe ser una URL de Cloudinary.");
     }
   }
 

@@ -1,5 +1,19 @@
 /* src/components/admin/OrdersTab.jsx */
 
+function paymentStatusLabel(status) {
+  switch (status) {
+    case "approved":
+      return "Pagado";
+    case "pending":
+      return "Pendiente";
+    case "pending_payment":
+      return "Esperando pago";
+    case "rejected":
+      return "Rechazado";
+    default:
+      return status;
+  }
+}
 function buildOrderMessage(order) {
   const lines = order.items.map(i => `• ${i.qty}x ${i.name} — ${formatCurrency(i.price * i.qty)}`).join("\n");
   return `Nuevo pedido ${order.id}\nCliente: ${order.customerName} (${order.customerEmail})\n\n${lines}\n\nTotal: ${formatCurrency(order.total)}${order.couponCode ? `\nCupón usado: ${order.couponCode}` : ""}`;
@@ -7,6 +21,8 @@ function buildOrderMessage(order) {
 function OrdersTab() {
   const {
     orders,
+    ordersLoading,
+    ordersError,
     contact
   } = useAdminData();
   return /*#__PURE__*/React.createElement("div", {
@@ -17,7 +33,13 @@ function OrdersTab() {
     className: "admin-card__title"
   }, /*#__PURE__*/React.createElement(IconClipboard, {
     size: 16
-  }), " Pedidos confirmados (", orders.length, ")"), orders.length === 0 ? /*#__PURE__*/React.createElement("p", {
+  }), " Pedidos confirmados (", orders.length, ")"), ordersError && /*#__PURE__*/React.createElement("p", {
+    className: "form-error"
+  }, /*#__PURE__*/React.createElement(IconAlert, {
+    size: 13
+  }), " ", ordersError), ordersLoading ? /*#__PURE__*/React.createElement("p", {
+    className: "admin-empty"
+  }, "Cargando pedidos...") : orders.length === 0 ? /*#__PURE__*/React.createElement("p", {
     className: "admin-empty"
   }, "Todav\xEDa no hay pedidos confirmados.") : /*#__PURE__*/React.createElement("ul", {
     className: "admin-orders-list"
@@ -32,7 +54,7 @@ function OrdersTab() {
       className: "admin-order-item__id"
     }, order.id, order.paymentStatus && /*#__PURE__*/React.createElement("span", {
       className: `payment-status-badge payment-status-badge--${order.paymentStatus}`
-    }, order.paymentStatus === "approved" ? "Pagado" : order.paymentStatus === "pending" ? "Pendiente" : order.paymentStatus)), /*#__PURE__*/React.createElement("p", {
+    }, paymentStatusLabel(order.paymentStatus))), /*#__PURE__*/React.createElement("p", {
       className: "admin-order-item__meta"
     }, order.customerName, " \xB7 ", order.customerEmail, " \xB7 ", new Date(order.date).toLocaleString("es-AR"))), /*#__PURE__*/React.createElement("div", {
       className: "admin-order-item__total"

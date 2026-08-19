@@ -3,6 +3,8 @@
 function CouponsTab() {
   const {
     coupons,
+    couponsLoading,
+    couponsError,
     addCoupon,
     deleteCoupon
   } = useAdminData();
@@ -12,7 +14,8 @@ function CouponsTab() {
     usableCount: "10"
   });
   const [message, setMessage] = useState(null);
-  const handleSubmit = e => {
+  const [submitting, setSubmitting] = useState(false);
+  const handleSubmit = async e => {
     e.preventDefault();
     if (!form.code.trim()) {
       setMessage({
@@ -21,7 +24,9 @@ function CouponsTab() {
       });
       return;
     }
-    const result = addCoupon(form);
+    setSubmitting(true);
+    const result = await addCoupon(form);
+    setSubmitting(false);
     setMessage({
       success: result.success,
       text: result.message
@@ -85,16 +90,23 @@ function CouponsTab() {
     size: 13
   }), " ", message.text), /*#__PURE__*/React.createElement("button", {
     type: "submit",
-    className: "btn-primary"
+    className: "btn-primary",
+    disabled: submitting
   }, /*#__PURE__*/React.createElement(IconTag, {
     size: 16
-  }), " Crear cup\xF3n"))), /*#__PURE__*/React.createElement("div", {
+  }), " ", submitting ? "Creando..." : "Crear cupón"))), /*#__PURE__*/React.createElement("div", {
     className: "admin-card admin-card--wide"
   }, /*#__PURE__*/React.createElement("h3", {
     className: "admin-card__title"
   }, /*#__PURE__*/React.createElement(IconClipboard, {
     size: 16
-  }), " Cupones activos (", coupons.length, ")"), coupons.length === 0 ? /*#__PURE__*/React.createElement("p", {
+  }), " Cupones activos (", coupons.length, ")"), couponsError && /*#__PURE__*/React.createElement("p", {
+    className: "form-error"
+  }, /*#__PURE__*/React.createElement(IconAlert, {
+    size: 13
+  }), " ", couponsError), couponsLoading ? /*#__PURE__*/React.createElement("p", {
+    className: "admin-empty"
+  }, "Cargando cupones...") : coupons.length === 0 ? /*#__PURE__*/React.createElement("p", {
     className: "admin-empty"
   }, "No hay cupones activos. Los que llegan a 0 usos se eliminan solos.") : /*#__PURE__*/React.createElement("div", {
     className: "admin-table-wrap"

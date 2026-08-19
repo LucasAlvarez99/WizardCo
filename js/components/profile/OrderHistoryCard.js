@@ -2,19 +2,23 @@
 
 function OrderHistoryCard() {
   const {
-    user
-  } = useAuth();
-  const {
-    orders
+    myOrders,
+    myOrdersLoading,
+    myOrdersError
   } = useAdminData();
-  const myOrders = orders.filter(o => o.customerEmail === user.email);
   return /*#__PURE__*/React.createElement("div", {
     className: "profile-card profile-card--block"
   }, /*#__PURE__*/React.createElement("p", {
     className: "profile-card__title"
   }, /*#__PURE__*/React.createElement(IconClipboard, {
     size: 16
-  }), " Mis pedidos (", myOrders.length, ")"), myOrders.length === 0 ? /*#__PURE__*/React.createElement("p", {
+  }), " Mis pedidos (", myOrders.length, ")"), myOrdersError && /*#__PURE__*/React.createElement("p", {
+    className: "form-error"
+  }, /*#__PURE__*/React.createElement(IconAlert, {
+    size: 13
+  }), " ", myOrdersError), myOrdersLoading ? /*#__PURE__*/React.createElement("p", {
+    className: "admin-empty"
+  }, "Cargando pedidos...") : myOrders.length === 0 ? /*#__PURE__*/React.createElement("p", {
     className: "admin-empty"
   }, "Todav\xEDa no hiciste ninguna compra.") : /*#__PURE__*/React.createElement("ul", {
     className: "admin-orders-list"

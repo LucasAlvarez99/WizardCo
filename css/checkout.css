@@ -104,6 +104,7 @@
 }
 .payment-status-badge--approved { background: var(--color-success-bg); color: var(--color-success); }
 .payment-status-badge--pending { background: var(--color-accent-bg); color: var(--color-accent); }
+.payment-status-badge--pending_payment { background: var(--color-surface-alt); color: var(--color-text-muted); }
 .payment-status-badge--rejected { background: var(--color-danger-bg); color: var(--color-danger); }
 
 /* Bloqueos antes de poder confirmar la compra (login / verificación / banco) */

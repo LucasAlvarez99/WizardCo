@@ -1,19 +1,33 @@
 /* src/components/admin/OrdersTab.jsx */
 
+function paymentStatusLabel(status) {
+  switch (status) {
+    case "approved": return "Pagado";
+    case "pending": return "Pendiente";
+    case "pending_payment": return "Esperando pago";
+    case "rejected": return "Rechazado";
+    default: return status;
+  }
+}
+
 function buildOrderMessage(order) {
   const lines = order.items.map((i) => `• ${i.qty}x ${i.name} — ${formatCurrency(i.price * i.qty)}`).join("\n");
   return `Nuevo pedido ${order.id}\nCliente: ${order.customerName} (${order.customerEmail})\n\n${lines}\n\nTotal: ${formatCurrency(order.total)}${order.couponCode ? `\nCupón usado: ${order.couponCode}` : ""}`;
 }
 
 function OrdersTab() {
-  const { orders, contact } = useAdminData();
+  const { orders, ordersLoading, ordersError, contact } = useAdminData();
 
   return (
     <div className="admin-tab admin-tab--single">
       <div className="admin-card admin-card--wide">
         <h3 className="admin-card__title"><IconClipboard size={16} /> Pedidos confirmados ({orders.length})</h3>
 
-        {orders.length === 0 ? (
+        {ordersError && <p className="form-error"><IconAlert size={13} /> {ordersError}</p>}
+
+        {ordersLoading ? (
+          <p className="admin-empty">Cargando pedidos...</p>
+        ) : orders.length === 0 ? (
           <p className="admin-empty">Todavía no hay pedidos confirmados.</p>
         ) : (
           <ul className="admin-orders-list">
@@ -28,7 +42,7 @@ function OrdersTab() {
                       {order.id}
                       {order.paymentStatus && (
                         <span className={`payment-status-badge payment-status-badge--${order.paymentStatus}`}>
-                          {order.paymentStatus === "approved" ? "Pagado" : order.paymentStatus === "pending" ? "Pendiente" : order.paymentStatus}
+                          {paymentStatusLabel(order.paymentStatus)}
                         </span>
                       )}
                     </p>

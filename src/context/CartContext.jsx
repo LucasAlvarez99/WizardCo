@@ -52,11 +52,11 @@ function CartProvider({ children }) {
   }, []);
 
   const applyCoupon = useCallback(
-    (rawCode) => {
+    async (rawCode) => {
       if (appliedCoupon) {
         return { success: false, message: `Ya tenés el cupón ${appliedCoupon.code} aplicado. Quitalo para usar otro.` };
       }
-      const result = applyCouponGlobal(rawCode);
+      const result = await applyCouponGlobal(rawCode);
       if (result.success) {
         setAppliedCoupon({ code: result.code, discountPercentage: result.discountPercentage });
       }

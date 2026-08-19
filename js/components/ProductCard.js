@@ -16,8 +16,12 @@ function ProductCard({
   return /*#__PURE__*/React.createElement("div", {
     className: "product-card"
   }, /*#__PURE__*/React.createElement("div", {
-    className: `product-card__media ${product.gradient}`
-  }, /*#__PURE__*/React.createElement(IconPrinter, {
+    className: `product-card__media ${product.images && product.images[0] ? "" : product.gradient}`
+  }, product.images && product.images[0] ? /*#__PURE__*/React.createElement("img", {
+    className: "product-card__photo",
+    src: product.images[0],
+    alt: product.name
+  }) : /*#__PURE__*/React.createElement(IconPrinter, {
     size: 40,
     strokeWidth: 1.5
   }), product.discount > 0 && /*#__PURE__*/React.createElement("span", {
